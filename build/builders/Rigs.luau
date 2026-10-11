@@ -53,6 +53,10 @@ function Rigs.Base(opts: { [string]: any })
 	local lArm = P.part(model, { Name = "Left Arm", Size = V(limbW * 0.95, 2, limbW * 0.95), Color = opts.Arms or opts.Skin, CFrame = CF() })
 	local rLeg = P.part(model, { Name = "Right Leg", Size = V(limbW, 2, limbW), Color = opts.Legs, CFrame = CF() })
 	local lLeg = P.part(model, { Name = "Left Leg", Size = V(limbW, 2, limbW), Color = opts.Legs, CFrame = CF() })
+	-- like Roblox's own R6 characters: only the torso and head collide
+	for _, limb in { rArm, lArm, rLeg, lLeg } do
+		limb.CanCollide = false
+	end
 
 	joint("RootJoint", hrp, torso, ROOT_ROT, ROOT_ROT)
 	joint("Neck", torso, head, CF(0, 1, 0) * ROOT_ROT, CF(0, -0.5, 0) * ROOT_ROT)

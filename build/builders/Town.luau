@@ -397,19 +397,14 @@ function Town.Build(parent: any, H: any, World: any)
 		for z = pier.MinZ + 40, pier.MaxZ - 10, 70 do
 			lamp(pm, pier.X + (if (z // 70) % 2 == 0 then -1 else 1) * (pier.HalfWidth - 0.8), pier.Height, z, 7)
 		end
-		-- T end platform
-		P.part(pm, { Name = "EndDeck", Size = V(26, 1, 10), CFrame = CF(pier.X, pier.Height - 0.5, pier.MaxZ + 5), Mat = "WoodPlanks", Color = rgb(160, 116, 72) })
-		for _, x in { -12, -4, 4, 12 } do
-			P.pillar(pm, pier.X + x, pier.MaxZ + 9.5, -26, pier.Height + 1.4, 1.3, { Name = "Piling", Mat = "Wood", Color = rgb(96, 70, 48) })
-		end
 		-- cargo
 		barrel(pm, pier.X - 3.5, pier.Height, pier.MinZ + 14)
 		barrel(pm, pier.X - 3.6, pier.Height, pier.MinZ + 16.4)
 		crate(pm, CF(pier.X + 3.2, pier.Height + 1.2, pier.MinZ + 22) * Angles(0, 0.4, 0))
 		crate(pm, CF(pier.X + 3.4, pier.Height + 3.4, pier.MinZ + 22.3) * Angles(0, 0.1, 0), 2)
 		-- pirate flag
-		P.pillar(pm, pier.X, pier.MaxZ + 8, pier.Height, pier.Height + 16, 0.5, { Name = "FlagPole", Mat = "Wood", Color = DARK_WOOD })
-		local flag = P.part(pm, { Name = "Flag", Size = V(0.15, 3.4, 5.2), CFrame = CF(pier.X, pier.Height + 14, pier.MaxZ + 10.8), Mat = "Fabric", Color = rgb(20, 18, 22), CanCollide = false })
+		P.pillar(pm, pier.X, pier.MaxZ - 2, pier.Height, pier.Height + 16, 0.5, { Name = "FlagPole", Mat = "Wood", Color = DARK_WOOD })
+		local flag = P.part(pm, { Name = "Flag", Size = V(0.15, 3.4, 5.2), CFrame = CF(pier.X, pier.Height + 14, pier.MaxZ + 0.8), Mat = "Fabric", Color = rgb(20, 18, 22), CanCollide = false })
 		for _, face in { "Left", "Right" } do
 			P.surfaceText(flag, face, "☠️", { Color = rgb(240, 236, 226), StrokeTransparency = 1, PixelsPerStud = 20 })
 		end

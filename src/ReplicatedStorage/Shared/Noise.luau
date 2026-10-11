@@ -1,4 +1,5 @@
 --!strict
+--!native
 -- Deterministic noise + random numbers.
 -- Only integer-exact arithmetic is used, so the results are identical in Roblox
 -- and in the Lune build script (which places trees/buildings on the same terrain).

@@ -73,9 +73,11 @@ function CarryService.Place(chest: Model, cf: CFrame, ignore: { Instance }?)
 	detach(chest)
 	local body = bodyOf(chest)
 	body.Anchored = true
-	local exclude: { Instance } = { chest, workspace:WaitForChild("Effects") }
-	for _, inst in ignore or {} do
-		table.insert(exclude, inst)
+	local exclude: { Instance } = { chest, workspace:WaitForChild("Effects"), workspace:WaitForChild("Nature"), workspace:WaitForChild("Enemies") }
+	if ignore then
+		for _, inst in ignore do
+			table.insert(exclude, inst)
+		end
 	end
 	for _, player in Players:GetPlayers() do
 		if player.Character then
@@ -120,6 +122,20 @@ local function setupChest(chest: Model)
 	prompt.MaxActivationDistance = 9
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = body
+	-- every chest glints so pirates can spot it on a beach or bobbing in the waves
+	if not body:FindFirstChild("Sparkle") then
+		local sparkle = Instance.new("ParticleEmitter")
+		sparkle.Name = "Sparkle"
+		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		sparkle.Rate = 3
+		sparkle.Lifetime = NumberRange.new(0.6, 1.2)
+		sparkle.Speed = NumberRange.new(0.5, 1.5)
+		sparkle.Size = NumberSequence.new(0.5, 0)
+		sparkle.SpreadAngle = Vector2.new(180, 180)
+		sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 230, 140))
+		sparkle.LightEmission = 1
+		sparkle.Parent = body
+	end
 	prompt.Triggered:Connect(function(player)
 		CarryService.PickUp(player, chest)
 	end)

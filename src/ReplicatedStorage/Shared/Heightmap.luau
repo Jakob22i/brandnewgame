@@ -1,4 +1,5 @@
 --!strict
+--!native
 -- The shape of the world. GetHeight(x, z) returns the terrain surface height.
 -- Used by: the terrain generator (runtime), ship grounding checks, enemy spawns,
 -- the treasure map UI and the Lune build script (to place palms and buildings).

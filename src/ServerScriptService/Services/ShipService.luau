@@ -154,7 +154,7 @@ local function isBlocked(point: Vector3, draft: number): boolean
 		return true
 	end
 	for _, pier in WorldData.Piers do
-		if math.abs(point.X - pier.X) < pier.HalfWidth + 1.5 and point.Z > pier.MinZ - 4 and point.Z < pier.MaxZ + 12 then
+		if math.abs(point.X - pier.X) < pier.HalfWidth + 1.5 and point.Z > pier.MinZ - 4 and point.Z < pier.MaxZ + 3 then
 			return true
 		end
 	end
@@ -897,9 +897,12 @@ local function updateShip(ship: Ship, dt: number, now: number)
 	local f = forwardOf(ship.Yaw)
 	local right = Vector3.new(-f.Z, 0, f.X)
 	local half = def.Length * 0.46
-	local probes = if ship.Speed >= 0
-		then { newPos + f * half, newPos + f * (half * 0.5) + right * (def.Width * 0.45), newPos + f * (half * 0.5) - right * (def.Width * 0.45) }
-		else { newPos - f * half, newPos - f * (half * 0.5) + right * (def.Width * 0.45), newPos - f * (half * 0.5) - right * (def.Width * 0.45) }
+	local dir = if ship.Speed >= 0 then f else -f
+	local probes: { Vector3 } = {
+		newPos + dir * half,
+		newPos + dir * (half * 0.5) + right * (def.Width * 0.45),
+		newPos + dir * (half * 0.5) - right * (def.Width * 0.45),
+	}
 	local blocked = false
 	if math.abs(ship.Speed) > 0.05 then
 		for _, probe in probes do
@@ -1081,10 +1084,11 @@ local function onAction(player: Player, action: any, a: any, b: any)
 end
 
 function ShipService.Init()
-	pcall(function()
-		PhysicsService:RegisterCollisionGroup("Ships")
-		PhysicsService:RegisterCollisionGroup("Docks")
-	end)
+	for _, group in { "Ships", "Docks" } do
+		if not PhysicsService:IsCollisionGroupRegistered(group) then
+			PhysicsService:RegisterCollisionGroup(group)
+		end
+	end
 	PhysicsService:CollisionGroupSetCollidable("Ships", "Ships", false)
 	PhysicsService:CollisionGroupSetCollidable("Ships", "Docks", false)
 	-- piers are handled by the sailing code; keep physics from fighting over them

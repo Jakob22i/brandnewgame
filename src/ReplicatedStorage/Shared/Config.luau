@@ -180,7 +180,7 @@ Config.Chests = {
 
 Config.KingChestChance = 0.08 -- chance a Captain's map holds the Pirate King's chest
 Config.MaxMaps = 5
-Config.Dig = { Radius = 9, Cooldown = 0.75 }
+Config.Dig = { Radius = 12, Cooldown = 0.75 }
 Config.BeachChests = { Max = 8, Interval = 75, SeafarerChance = 0.25 }
 Config.LooseChestLifetime = 20 * 60
 

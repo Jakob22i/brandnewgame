@@ -217,7 +217,9 @@ function TreasureService.Init()
 		lastHint[player] = nil
 	end)
 	task.spawn(function()
-		task.wait(20)
+		while not workspace:GetAttribute("WorldReady") do
+			task.wait(2)
+		end
 		for _ = 1, 4 do
 			spawnBeachChest()
 		end

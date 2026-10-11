@@ -161,9 +161,11 @@ function Ships.Build(id: string, def: any)
 	}
 	for _, layer in layers do
 		local y0, y1, color = layer[1], layer[2], layer[3]
-		P.part(hull, { Name = "HullSide", Size = V(W, y1 - y0, zStern - zBow), CFrame = CF(0, (y0 + y1) / 2, (zBow + zStern) / 2), Mat = "WoodPlanks", Color = color })
+		-- the hull below the waterline is visual only, so it can never wedge against the seabed
+		local solid = y1 > -0.3
+		P.part(hull, { Name = "HullSide", Size = V(W, y1 - y0, zStern - zBow), CFrame = CF(0, (y0 + y1) / 2, (zBow + zStern) / 2), Mat = "WoodPlanks", Color = color, CanCollide = solid })
 		for _, side in { -1, 1 } do
-			P.bowWedge(hull, side, W / 2, s.BowLen, zBow, y0, y1, { Name = "Bow", Mat = "WoodPlanks", Color = color })
+			P.bowWedge(hull, side, W / 2, s.BowLen, zBow, y0, y1, { Name = "Bow", Mat = "WoodPlanks", Color = color, CanCollide = solid })
 		end
 	end
 	-- gold trim line
@@ -172,8 +174,8 @@ function Ships.Build(id: string, def: any)
 		P.plank(hull, V(side * (W / 2 + 0.05), s.DeckY - 0.3, zBow), V(0, s.DeckY - 0.3, -L / 2), 0.16, 0.22, { Name = "Trim", Mat = "Metal", Color = s.Trim })
 	end
 	-- keel + rudder
-	P.part(hull, { Name = "Keel", Size = V(W * 0.35, 1.4, L * 0.78), CFrame = CF(0, s.Bottom - 0.5, s.BowLen * 0.25), Mat = "WoodPlanks", Color = s.BottomColor })
-	P.part(hull, { Name = "Rudder", Size = V(0.6, 6, 3), CFrame = CF(0, s.Bottom + 2.6, zStern + 1.3), Mat = "WoodPlanks", Color = s.BottomColor })
+	P.part(hull, { Name = "Keel", Size = V(W * 0.35, 1.4, L * 0.78), CFrame = CF(0, s.Bottom - 0.5, s.BowLen * 0.25), Mat = "WoodPlanks", Color = s.BottomColor, CanCollide = false })
+	P.part(hull, { Name = "Rudder", Size = V(0.6, 6, 3), CFrame = CF(0, s.Bottom + 2.6, zStern + 1.3), Mat = "WoodPlanks", Color = s.BottomColor, CanCollide = false })
 
 	-- Decks
 	P.part(hull, { Name = "Deck", Size = V(W - 1.6, 0.3, zCastle - zBow + 0.2), CFrame = CF(0, s.DeckY + 0.15, (zBow + zCastle) / 2), Mat = "WoodPlanks", Color = s.Deck })
