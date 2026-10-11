@@ -44,7 +44,9 @@ type Cannon = {
 	AimDirty: boolean,
 }
 
-type SailInfo = { Part: BasePart, Weld: Weld, Full: number, Gap: number, ZOffset: number }
+-- Any part named "Sail" or "SailEmblem" that hangs from a yard by a Weld called
+-- "SailWeld" is furled/unfurled by resizing it (see build/CONTRACTS.md).
+type SailInfo = { Part: BasePart, Weld: Weld, Full: number, Gap: number, XOffset: number, ZOffset: number, Rotation: CFrame }
 
 export type Ship = {
 	Id: number,
@@ -203,7 +205,14 @@ local function updateSails(ship: Ship)
 	for _, sail in ship.Sails do
 		local height = 1.4 + (sail.Full - 1.4) * ship.Sail
 		sail.Part.Size = Vector3.new(sail.Part.Size.X, height, sail.Part.Size.Z)
-		sail.Weld.C0 = CFrame.new(0, -(sail.Gap + height / 2), sail.ZOffset)
+		sail.Weld.C0 = CFrame.new(sail.XOffset, -(sail.Gap + height / 2), sail.ZOffset) * sail.Rotation
+		if sail.Part.Name == "SailEmblem" then
+			for _, gui in sail.Part:GetChildren() do
+				if gui:IsA("SurfaceGui") then
+					gui.Enabled = ship.Sail > 0.6
+				end
+			end
+		end
 	end
 	ship.VisualSail = ship.Sail
 end
@@ -735,15 +744,22 @@ function ShipService.Spawn(player: Player, shipType: string): (boolean, string)
 		LastAutoRepair = 0,
 		Destroyed = false,
 	}
-	for _, sail in findAll(model, "Sail", "BasePart") do
+	local sailParts = findAll(model, "Sail", "BasePart")
+	for _, emblem in findAll(model, "SailEmblem", "BasePart") do
+		table.insert(sailParts, emblem)
+	end
+	for _, sail in sailParts do
 		local weld = sail:FindFirstChild("SailWeld")
 		if weld and weld:IsA("Weld") then
+			local yaw = sail:GetAttribute("SailYaw")
 			table.insert(ship.Sails, {
 				Part = sail :: BasePart,
 				Weld = weld,
 				Full = sail:GetAttribute("FullHeight") or (sail :: BasePart).Size.Y,
 				Gap = sail:GetAttribute("Gap") or 0.5,
+				XOffset = sail:GetAttribute("XOffset") or 0,
 				ZOffset = sail:GetAttribute("ZOffset") or -0.5,
+				Rotation = if type(yaw) == "number" then CFrame.Angles(0, yaw, 0) else CFrame.new(),
 			})
 		end
 	end

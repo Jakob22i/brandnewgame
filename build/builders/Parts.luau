@@ -11,6 +11,9 @@ local Font = roblox.Font
 
 local P = {}
 
+-- Rye (Roblox Creator Store font family 12187372175): the game's pirate font
+P.RYE = Font.new("rbxassetid://12187372175")
+
 P.Instance = Instance
 P.Vector3 = Vector3
 P.CFrame = CFrame
@@ -240,7 +243,7 @@ function P.surfaceText(part: any, face: string, text: string, opts: { [string]: 
 	label.TextColor3 = o.Color or Color3.fromRGB(255, 220, 120)
 	label.TextStrokeTransparency = o.StrokeTransparency or 0.4
 	label.TextStrokeColor3 = o.StrokeColor or Color3.fromRGB(40, 20, 10)
-	label.FontFace = Font.fromEnum(o.Font or Enum.Font.LuckiestGuy)
+	label.FontFace = if o.FontFace then o.FontFace elseif o.Font then Font.fromEnum(o.Font) else P.RYE
 	label.TextTransparency = o.TextTransparency or 0
 	label.Parent = gui
 	local pad = Instance.new("UIPadding")
@@ -301,7 +304,7 @@ function P.billboard(parent: any, name: string, text: string, opts: { [string]: 
 	label.TextColor3 = o.Color or Color3.fromRGB(255, 255, 255)
 	label.TextStrokeTransparency = 0.2
 	label.TextStrokeColor3 = Color3.fromRGB(30, 20, 10)
-	label.FontFace = Font.fromEnum(o.Font or Enum.Font.FredokaOne)
+	label.FontFace = if o.FontFace then o.FontFace elseif o.Font then Font.fromEnum(o.Font) else P.RYE
 	label.Parent = gui
 	return gui, label
 end

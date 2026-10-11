@@ -11,6 +11,18 @@ WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
 WorldData.TerrainVersion = 3 -- bump when the terrain recipe changes
 
+export type Shop = {
+	Id: string,
+	Title: string,
+	X: number,
+	Z: number,
+	Yaw: number,
+	Width: number,
+	Depth: number,
+	FrontX: number?,
+	FrontZ: number?,
+}
+
 export type Island = {
 	Name: string,
 	X: number,
@@ -91,6 +103,22 @@ WorldData.AnchorageSlots = {
 	{ X = -420, Z = 760 },
 	{ X = 420, Z = 760 },
 }
+
+-- The shops of Kingshaven. A shop's front (where the shopkeeper stands and players
+-- walk up) faces local +Z rotated by Yaw. Width is along the front, Depth front-to-back.
+-- The build script places buildings here and the island paths lead to each FrontX/FrontZ.
+WorldData.Shops = ({
+	{ Id = "Shipwright", Title = "SHIPWRIGHT", X = 60, Z = 250, Yaw = -math.pi / 2, Width = 26, Depth = 20 },
+	{ Id = "Merchant", Title = "MERCHANT", X = -60, Z = 250, Yaw = math.pi / 2, Width = 26, Depth = 20 },
+	{ Id = "Armory", Title = "ARMORY", X = 76, Z = 120, Yaw = -math.pi / 2, Width = 22, Depth = 18 },
+	{ Id = "Tavern", Title = "THE RUSTY ANCHOR", X = -80, Z = 120, Yaw = math.pi / 2, Width = 28, Depth = 22 },
+	{ Id = "TradingPost", Title = "TRADING POST", X = 0, Z = 22, Yaw = 0, Width = 24, Depth = 18 },
+} :: { Shop })
+for _, shop in WorldData.Shops do
+	local reach = shop.Depth / 2 + 12
+	shop.FrontX = shop.X + math.sin(shop.Yaw) * reach
+	shop.FrontZ = shop.Z + math.cos(shop.Yaw) * reach
+end
 
 WorldData.SpawnPoint = { X = 0, Z = 182 }
 WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 46, HillRadius = 110 }
