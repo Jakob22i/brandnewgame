@@ -751,7 +751,7 @@ function ShipService.Spawn(player: Player, shipType: string): (boolean, string)
 	for _, sail in sailParts do
 		local weld = sail:FindFirstChild("SailWeld")
 		if weld and weld:IsA("Weld") then
-			local yaw = sail:GetAttribute("SailYaw")
+			local sailYaw = sail:GetAttribute("SailYaw")
 			table.insert(ship.Sails, {
 				Part = sail :: BasePart,
 				Weld = weld,
@@ -759,7 +759,7 @@ function ShipService.Spawn(player: Player, shipType: string): (boolean, string)
 				Gap = sail:GetAttribute("Gap") or 0.5,
 				XOffset = sail:GetAttribute("XOffset") or 0,
 				ZOffset = sail:GetAttribute("ZOffset") or -0.5,
-				Rotation = if type(yaw) == "number" then CFrame.Angles(0, yaw, 0) else CFrame.new(),
+				Rotation = if type(sailYaw) == "number" then CFrame.Angles(0, sailYaw, 0) else CFrame.new(),
 			})
 		end
 	end
