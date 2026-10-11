@@ -46,7 +46,7 @@ end
 
 local SAIL_BLACK = rgb(28, 26, 30)
 local ROPE = rgb(58, 46, 34)
-local IRON = rgb(38, 38, 42)
+local IRON = rgb(48, 47, 50)
 local SPAR = rgb(66, 48, 34)
 local LAMP = rgb(255, 178, 92)
 
@@ -105,6 +105,7 @@ local STYLES = {
 		Capstan = { Z = -10, Deck = "Main" },
 		Ladder = 7,
 		Barrels = { { X = -0.66, Z = -12.5 }, { X = 0.7, Z = 8.4 }, { X = -0.7, Z = 8.6 } },
+		Crates = { { X = 0.72, Z = -13.3, Stack = 2 } },
 		Hatch = nil,
 		Hull = rgb(92, 68, 50),
 		Figure = rgb(176, 134, 64),
@@ -177,6 +178,7 @@ local STYLES = {
 		Capstan = { Z = -23.6, Deck = "FC" },
 		Ladder = -1.5,
 		Barrels = { { X = -0.7, Z = -18.6 }, { X = 0.72, Z = -18.6 }, { X = 0.72, Z = 13.2 } },
+		Crates = { { X = -0.72, Z = 13.0, Stack = 2 } },
 		Hatch = { Z = -1 },
 		Hull = rgb(80, 60, 46),
 		Figure = rgb(196, 150, 66),
@@ -268,6 +270,7 @@ local STYLES = {
 		Capstan = { Z = -27.9, Deck = "FC" },
 		Ladder = -12.2,
 		Barrels = { { X = -0.74, Z = 16.6 }, { X = 0.74, Z = 16.6 }, { X = -0.72, Z = -37.5 }, { X = 0.72, Z = -37.5 } },
+		Crates = { { X = 0.75, Z = -22.8, Stack = 2 }, { X = -0.75, Z = -22.6, Stack = 1 } },
 		Hatch = { Z = -12 },
 		Hull = rgb(66, 50, 41),
 		Figure = rgb(206, 160, 70),
@@ -479,8 +482,10 @@ local function quadPlank(parent: any, A: any, B: any, C: any, D: any, thick: num
 	local X = Y:Cross(Z)
 	local n = if X:Dot(outward) >= 0 then X else X * -1
 	local center = (A + B + C + D) * 0.25 - n * (thick / 2 - proud)
+	-- overlap the neighbours just enough to close the gaps a box leaves on a tapered quad
+	local spread = math.abs((B - A).Magnitude - (D - C).Magnitude)
 	return P.part(parent, merge({
-		Size = V(thick, h + 0.14, len + 0.22),
+		Size = V(thick, h + 0.14, len + 0.08 + spread * 0.5),
 		CFrame = fromMatrix(center, X, Y, Z),
 	}, props))
 end
@@ -523,29 +528,53 @@ end
 
 -- Adaptive strake segments between v0 and v1: returns {uStart, uEnd} pairs whose box
 -- approximates the surface within `tol` and whose height changes by at most `taper`.
-local function rowSegments(G: any, us: { number }, v0: (number) -> number, v1: (number) -> number, tol: number, taper: number, maxLen: number): { { number } }
+local function rowSegments(G: any, us: { number }, v0: (number) -> number, v1: (number) -> number, tol: number, taper: number, twist: number, maxLen: number, exists: ((number) -> boolean)?): { { number } }
 	local n = #us
-	local b, t, h = {}, {}, {}
+	local b, t, h, on = {}, {}, {}, {}
 	for i = 1, n do
 		b[i] = G.point(us[i], v0(us[i]), 1)
 		t[i] = G.point(us[i], v1(us[i]), 1)
 		h[i] = (t[i] - b[i]).Magnitude
+		on[i] = if exists then exists(us[i]) else h[i] >= 0.08
+	end
+	if exists then
+		-- grow by one station so a strake starts just before it becomes visible
+		local grown = {}
+		for i = 1, n do
+			grown[i] = on[i] or (i > 1 and on[i - 1]) or (i < n and on[i + 1])
+		end
+		on = grown
 	end
 	local out = {}
 	local i = 1
 	while i < n do
-		if h[i] < 0.08 and h[i + 1] < 0.08 then
+		if not (on[i] and on[i + 1]) then
 			i += 1
 			continue
 		end
 		local j = i + 1
 		while j < n do
 			local k2 = j + 1
-			if h[k2] < 0.08 then
+			if not on[k2] then
 				break
 			end
 			if (b[k2] - b[i]).Magnitude > maxLen or math.abs(h[k2] - h[i]) > taper then
 				break
+			end
+			-- twist: how far the quad's corners leave the plane of the box face
+			local along = (b[k2] + t[k2] - b[i] - t[i]) * 0.5
+			local upv = (t[i] + t[k2] - b[i] - b[k2]) * 0.5
+			if along.Magnitude > 1e-3 then
+				local Z = along.Unit
+				local up = upv - Z * upv:Dot(Z)
+				if up.Magnitude > 1e-3 then
+					local X = up.Unit:Cross(Z)
+					local c = (b[i] + b[k2] + t[i] + t[k2]) * 0.25
+					local dev = math.max(math.abs((b[i] - c):Dot(X)), math.abs((b[k2] - c):Dot(X)), math.abs((t[i] - c):Dot(X)), math.abs((t[k2] - c):Dot(X)))
+					if dev > twist then
+						break
+					end
+				end
 			end
 			local ok = true
 			local span = us[k2] - us[i]
@@ -766,25 +795,33 @@ function Ships.Build(id: string, def: any)
 		local v1 = if r == #s.Rows - 1 then 1 else (s.Rows[r + 1] - s.Keel) / (G.WaistTop - s.Keel)
 		table.insert(rows, { V0 = constV(v0), V1 = constV(v1), Kind = s.Kinds[r] })
 	end
+	-- castle strakes: constant-height bands hanging from the sheer. Where a band reaches
+	-- below the waist line it tucks (slightly recessed) behind the lower strakes, so the
+	-- castles need no tapered slivers.
 	local maxCastle = 0
 	for k = 0, 100 do
 		local z = lerp(-L / 2, L / 2, k / 100)
 		maxCastle = math.max(maxCastle, G.sheer(z) - G.base(z))
 	end
-	local nCastle = math.ceil(maxCastle / s.CastleRowH - 0.15)
+	local hr = s.CastleRowH
+	local nCastle = math.ceil(maxCastle / hr - 0.05)
 	local function castleV(depth: number): (number) -> number
 		return function(u: number): number
-			local z0 = -L / 2 + u * L
-			local ch = G.sheer(z0) - G.base(z0)
-			if ch < 1e-3 then
-				return 1
-			end
-			return 2 - math.min(1, depth / ch)
+			return G.vAt(u, G.sheer(-L / 2 + u * L) - depth)
 		end
 	end
 	for k = 1, nCastle do
-		local lowest = k == nCastle
-		table.insert(rows, { V0 = if lowest then constV(1) else castleV(k * s.CastleRowH), V1 = castleV((k - 1) * s.CastleRowH), Kind = "castle" })
+		local top = (k - 1) * hr
+		table.insert(rows, {
+			V0 = castleV(k * hr),
+			V1 = castleV(top),
+			Kind = "castle",
+			Recess = 0.25,
+			Exists = function(u: number): boolean
+				local z0 = -L / 2 + u * L
+				return G.sheer(z0) - G.base(z0) > top + 0.06
+			end,
+		})
 	end
 
 	local function rowColor(kind: string, r: number, i: number, side: number): any
@@ -802,9 +839,9 @@ function Ships.Build(id: string, def: any)
 		local bottom = kind == "bottom"
 		local tol = if bottom then 0.7 elseif kind == "castle" and r > #s.Rows then 0.28 else 0.2
 		local taper = if bottom then 2.5 elseif kind == "castle" then 0.65 else 0.5
-		local segs = rowSegments(G, us, row.V0, row.V1, tol, taper, if bottom then 40 else 26)
+		local segs = rowSegments(G, us, row.V0, row.V1, tol, taper, if bottom then 0.5 else 0.08, if bottom then 40 else 26, row.Exists)
 		local thick = if kind == "wale" then 0.85 else 0.6
-		local proud = if kind == "wale" then 0.22 else 0
+		local proud = if kind == "wale" then 0.22 else -(row.Recess or 0)
 		for i, seg in segs do
 			local ua, ub = seg[1], seg[2]
 			for _, side in { -1, 1 } do
@@ -819,14 +856,16 @@ function Ships.Build(id: string, def: any)
 			end
 		end
 		-- transom strake
-		local A, B = G.point(1, row.V0(1), -1), G.point(1, row.V0(1), 1)
-		local C, D = G.point(1, row.V1(1), -1), G.point(1, row.V1(1), 1)
-		quadPlank(hull, A, B, C, D, 0.6, V(0, 0, 1), if kind == "wale" then 0.22 else 0, {
-			Name = "Transom",
-			Mat = "WoodPlanks",
-			Color = rowColor(kind, r, 99, 0),
-			CanCollide = not bottom,
-		})
+		if not row.Exists or row.Exists(1) then
+			local A, B = G.point(1, row.V0(1), -1), G.point(1, row.V0(1), 1)
+			local C, D = G.point(1, row.V1(1), -1), G.point(1, row.V1(1), 1)
+			quadPlank(hull, A, B, C, D, 0.6, V(0, 0, 1), proud, {
+				Name = "Transom",
+				Mat = "WoodPlanks",
+				Color = rowColor(kind, r, 99, 0),
+				CanCollide = not bottom,
+			})
+		end
 	end
 
 	-- fine polyline along a hull line (u from 0 to 1 at fixed v)
@@ -875,7 +914,7 @@ function Ships.Build(id: string, def: any)
 			local ch = G.sheer(z0) - G.base(z0)
 			if ch > 1.2 then
 				local v = 2 - 0.62 / ch
-				table.insert(run, G.point(u, v, side) + G.normal(u, v, side) * 0.27)
+				table.insert(run, G.point(u, v, side) + G.normal(u, v, side) * -0.12)
 			else
 				flush()
 			end
@@ -889,18 +928,19 @@ function Ships.Build(id: string, def: any)
 	end
 
 	-- stem (cutwater) rising into the beakhead, and the keel
+	-- (wide enough to hide where the planking of both bows meets)
 	local stemPts = {}
-	for i = 0, 10 do
-		local p = G.point(0, i / 5, 1)
-		table.insert(stemPts, V(0, p.Y, p.Z - 0.3))
+	for i = 0, 16 do
+		local p = G.point(0, i / 8, 1)
+		table.insert(stemPts, V(0, p.Y, p.Z + 0.1))
 	end
-	local stemTop = stemPts[#stemPts] + V(0, 0.8, -0.9)
+	local stemTop = stemPts[#stemPts] + V(0, 0.8, -1.1)
 	table.insert(stemPts, stemTop)
 	do
-		local keep = simplify(stemPts, 0.12, 30)
+		local keep = simplify(stemPts, 0.07, 30)
 		for k = 1, #keep - 1 do
 			local a, b = stemPts[keep[k]], stemPts[keep[k + 1]]
-			P.plank(hull, a, b, 0.9, 1.2, { Name = "Stem", Mat = "Wood", Color = s.Wale, CanCollide = false })
+			P.plank(hull, a, b, 1.3, 2.1, { Name = "Stem", Mat = "Wood", Color = shade(s.Wale, 1.2), CanCollide = false })
 		end
 		local keelPts = {}
 		for i, u in fineA do
@@ -1087,11 +1127,14 @@ function Ships.Build(id: string, def: any)
 		for k = 0, n do
 			local p = a + (b - a) * (k / n)
 			local isPost = posts and (k == 0 or k == n)
-			P.pillar(railings, p.X, p.Z, p.Y, p.Y + height + (if isPost then 0.45 else 0), if isPost then 0.42 else 0.24, deco({
+			-- collidable so nobody slips between the balusters off a castle edge
+			P.pillar(railings, p.X, p.Z, p.Y, p.Y + height + (if isPost then 0.45 else 0), if isPost then 0.42 else 0.24, {
 				Name = if isPost then "Post" else "Baluster",
 				Mat = "Wood",
 				Color = if isPost then s.Rail else shade(s.Rail, 1.3),
-			}))
+				CanQuery = false,
+				CanTouch = false,
+			})
 		end
 		P.plank(railings, a + V(0, height, 0), b + V(0, height, 0), 0.4, 0.3, { Name = "Rail", Mat = "Wood", Color = s.Rail })
 	end
@@ -1229,17 +1272,6 @@ function Ships.Build(id: string, def: any)
 			P.plank(fittings, head + V(0, 0.1, 0.4), head + V(side * 1.3, 0.9, 1.6), 0.25, 0.7, deco({ Name = "FigureheadWing", Mat = "Metal", Color = s.Figure }))
 		end
 	end
-	-- head rails: curved rails from the stem head back along the bows
-	do
-		local uR = 0.035 * (88 / L)
-		for _, side in { -1, 1 } do
-			local mid = G.point(uR, 1.15, side) + V(side * 0.25, 0, 0)
-			local back = G.point(uR * 2.6, 1.55, side) + V(side * 0.25, 0, 0)
-			local front = stemTop + V(side * 0.3, -0.9, 0.5)
-			P.plank(fittings, front, mid, 0.3, 0.4, deco({ Name = "HeadRail", Mat = "Wood", Color = s.Rail }))
-			P.plank(fittings, mid, back, 0.3, 0.4, deco({ Name = "HeadRail", Mat = "Wood", Color = s.Rail }))
-		end
-	end
 	-- bobstay
 	rope(rigging, spritEnd, G.point(0, 0.35, 1) + V(0, 0, -0.4), 0.2)
 
@@ -1262,7 +1294,7 @@ function Ships.Build(id: string, def: any)
 		local anchorModel = P.model(fittings, "Anchor")
 		local top = mountCF * CF(0, -0.6, 0)
 		local anchorRoot = P.part(anchorModel, { Name = "AnchorRoot", Size = V(0.3, 0.3, 0.3), CFrame = top, Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false })
-		local shankLen = if big then 5.2 else 4.2
+		local shankLen = if big then 5.0 elseif L > 50 then 4.2 else 3.4
 		local a = {
 			P.part(anchorModel, { Name = "Ring", Shape = "Cylinder", Size = V(0.2, 0.9, 0.9), CFrame = top * CF(0, -0.2, 0) * Angles(0, math.pi / 2, 0), Mat = "Metal", Color = IRON }),
 			P.part(anchorModel, { Name = "Stock", Size = V(0.4, 0.4, shankLen * 0.75), CFrame = top * CF(0, -0.8, 0), Mat = "Wood", Color = SPAR }),
@@ -1358,6 +1390,7 @@ function Ships.Build(id: string, def: any)
 		for _, sx in { -1, 1 } do
 			P.pillar(rigging, sx * (d0 / 2 + 1.3), m.Z + d0 / 2 + 1.0, baseY, baseY + 2.2, 0.32, deco({ Name = "FifePost", Mat = "Wood", Color = s.Rail }))
 		end
+		P.pillar(rigging, d0 / 2 + 1.0, m.Z - d0 / 2 - 0.9, baseY, baseY + 0.32, 1.5, deco({ Name = "RopeCoil", Mat = "Fabric", Color = ROPE }))
 		if baseY == deckTop then
 			block(0, m.Z, d0 / 2 + 2.2)
 		end
@@ -1507,6 +1540,17 @@ function Ships.Build(id: string, def: any)
 			P.pillar(fittings, x, b.Z, yb + hy - 0.08, yb + hy + 0.08, 1.78, deco({ Name = "Hoop", Mat = "Metal", Color = IRON }))
 		end
 		block(x, b.Z, 1.6)
+	end
+	for i, c in s.Crates do
+		local hw = hwIn(c.Z, deckTop + 1)
+		local x = c.X * hw
+		x = if x > 0 then math.min(x, hw - 1.25) else math.max(x, -(hw - 1.25))
+		local color = shade(rgb(124, 90, 58), 0.9 + 0.2 * hash(i, 7, 3))
+		P.part(fittings, { Name = "Crate", Size = V(2.1, 1.9, 2.1), CFrame = CF(x, deckTop + 0.95, c.Z) * Angles(0, 0.12 * i, 0), Mat = "WoodPlanks", Color = color, CanQuery = false })
+		if c.Stack > 1 then
+			P.part(fittings, { Name = "Crate", Size = V(1.5, 1.4, 1.5), CFrame = CF(x - 0.1 * math.sign(x), deckTop + 2.6, c.Z + 0.1) * Angles(0, 0.5 + 0.2 * i, 0), Mat = "WoodPlanks", Color = shade(color, 1.12), CanQuery = false })
+		end
+		block(x, c.Z, 1.8)
 	end
 
 	---------------------------------------------------------------------------
