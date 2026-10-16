@@ -149,9 +149,11 @@ local function shopkeeper(parent: any, shopId: string, cf: any)
 
 	local gui = P.Instance.new("BillboardGui")
 	gui.Name = "Title"
-	gui.Size = P.UDim2.fromOffset(230, 70)
-	gui.StudsOffset = V(0, 4.2, 0)
-	gui.MaxDistance = 80
+	-- sized in studs and drawn on top: the shopkeeper stands inside, under the shop's front wall
+	gui.Size = P.UDim2.new(7, 0, 2.1, 0)
+	gui.StudsOffset = V(0, 3.3, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 45
 	gui.LightInfluence = 0
 	gui.Parent = r.Head
 	local role = P.Instance.new("TextLabel")
@@ -449,7 +451,7 @@ local function decorateShipwright(m: any, info: { [string]: any }, g: (number, n
 		O.Stick(m, "Stringer", (slip * CF(side * 3.6, keelY + 5.0, -9.5)).Position, (slip * CF(side * 4.3, keelY + 5.6, 8.5)).Position, 0.4, 0.5, rgb(160, 120, 76), "Wood", { CanCollide = false })
 	end
 	O.Hoist(m, slip * CF(0, base, 0.5), 16, 7.4)
-	O.Lumber(m, CF(half + 6, base, -13.5) * Angles(0, PI / 2, 0), 10, 3)
+	O.Lumber(m, CF(half + 5, base, -12.2) * Angles(0, PI / 2, 0), 9, 3)
 	O.Sawhorse(m, CF(half + 3.8, g(half + 3.8, zf + 5), zf + 5) * Angles(0, 0.2, 0))
 	O.Logs(m, CF(-half - 3.2, g(-half - 3.2, -3), -3) * Angles(0, PI / 2, 0), 8)
 	O.LanternPost(m, CF(half + 2.4, g(half + 2.4, pz + 2), pz + 2) * Angles(0, PI / 2, 0), 8)

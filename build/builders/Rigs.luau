@@ -124,6 +124,16 @@ function Rigs.Skeleton()
 	deco(model, r.RightArm, { Name = "SwordBlade", Size = V(0.1, 0.35, 2.4), CFrame = CF(ap.X, ap.Y - 1.05, ap.Z - 1.6), Color = rgb(150, 120, 96), Mat = "Metal" })
 	-- tattered sash
 	deco(model, torso, { Name = "Sash", Size = V(1.75, 0.35, 0.75), CFrame = CF(tp.X, tp.Y - 0.5, tp.Z), Color = rgb(150, 34, 34), Mat = "Fabric" })
+	-- bone joints: knobbly elbows and knees, bony hands and feet
+	for _, limb in { r.RightArm, r.LeftArm, r.RightLeg, r.LeftLeg } do
+		local lp = limb.CFrame
+		deco(model, limb, { Name = "Joint", Shape = "Ball", Size = V(0.68, 0.68, 0.68), CFrame = lp * CF(0, 0.05, 0), Color = bone })
+		if limb == r.RightLeg or limb == r.LeftLeg then
+			deco(model, limb, { Name = "Foot", Size = V(0.62, 0.3, 1.0), CFrame = lp * CF(0, -0.88, -0.22), Color = bone })
+		elseif limb == r.LeftArm then
+			deco(model, limb, { Name = "Hand", Shape = "Ball", Size = V(0.58, 0.58, 0.58), CFrame = lp * CF(0, -1.0, 0), Color = bone })
+		end
+	end
 
 	local h = r.Humanoid
 	h.WalkSpeed = 14
