@@ -531,7 +531,7 @@ end
 -- Dense jungle for Kingshaven ----------------------------------------------------------
 -- Part budgets: the jungle is densest along the paths, in groves and on the beaches,
 -- and thins out where nobody walks.
-local JUNGLE_BUDGET = { Tree = 1900, Palm = 1150, Small = 400, Mound = 240, Thicket = 900 }
+local JUNGLE_BUDGET = { Tree = 1650, Palm = 1320, Small = 400, Mound = 240, Thicket = 900 }
 
 local function countParts(m: any): number
 	local n = 0

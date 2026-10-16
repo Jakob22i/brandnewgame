@@ -93,8 +93,8 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 	local capW = width * rng:Range(0.9, 1.0)
 	local capD = capOut + 4
 	local capCF = cf * CF(shift * 0.5, height - 0.15, -capOut + capD / 2) * Angles(0, rng:Range(-0.04, 0.04), 0)
-	P.part(m, { Name = "GrassCap", Size = V(capW, 1.4, capD - 1.1), CFrame = capCF * CF(0, 0, 0.55), Mat = "LeafyGrass", Color = capColor })
-	P.part(m, { Name = "GrassCap", Shape = "Cylinder", Size = V(capW - 0.4, 2.2, 2.2), CFrame = capCF * CF(0, -0.4, -capD / 2 + 1.1), Mat = "LeafyGrass", Color = Nature.Shade(capColor, 0.96) })
+	P.part(m, { Name = "GrassCap", Size = V(capW, 1.2, capD - 1.4), CFrame = capCF * CF(0, -0.2, 0.7), Mat = "LeafyGrass", Color = capColor })
+	Nature.Blob(m, V(capW + 0.6, 2.0, 3.4), capCF * CF(0, -0.45, -capD / 2 + 1.5), { Name = "GrassCap", Mat = "LeafyGrass", Color = Nature.Shade(capColor, 0.97), CanCollide = true, CanQuery = true })
 	count += 2
 	-- ivy spilling over the lip: hanging curtains of overlapping leafy clumps that taper
 	-- downwards (some long like vines)
