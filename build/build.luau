@@ -26,6 +26,7 @@ local Chests = require("./builders/Chests")
 local Rigs = require("./builders/Rigs")
 local Town = require("./builders/Town")
 local Nature = require("./builders/Nature")
+local MainIsland = require("./builders/MainIsland")
 
 local Instance = roblox.Instance
 local Enum = roblox.Enum
@@ -260,8 +261,10 @@ for _, name in { "Ships", "Enemies", "Treasure", "Effects" } do
 end
 
 local town, clear = Town.Build(Workspace, H, World)
+local mainIsland, islandStats = MainIsland.Build(Workspace, H, World, Noise, clear)
+print(("MainIsland: %d parts (%d cliff rocks)"):format(islandStats.Parts or 0, islandStats.Cliffs or 0))
 local nature, stats = Nature.Build(Workspace, H, World, Noise, clear)
-print(("Nature: %d palms, %d rocks, %d bushes"):format(stats.Palms, stats.Rocks, stats.Bushes))
+print(("Nature: %d palms, %d trees, %d rocks, %d small plants"):format(stats.Palms, stats.Trees, stats.Rocks, stats.Bushes))
 
 local partCount = 0
 for _, d in Workspace:GetDescendants() do

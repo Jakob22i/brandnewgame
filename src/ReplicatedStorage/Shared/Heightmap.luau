@@ -23,10 +23,17 @@ local Lighthouse = WorldData.Lighthouse
 local Lagoon = WorldData.Lagoon
 
 -- Kingshaven terraces
-local STEP = 12 -- height of one terrace level
-local RISER = 0.2 -- part of a level taken by the cliff up to the next terrace
-local CLIFF_COAST = 40 -- studs over which the cliff coast drops from the terraces to the sea
+local STEP = 16 -- height of one terrace level
+local RISER = 0.08 -- part of a level taken by the cliff up to the next terrace
+local CLIFF_COAST = 30 -- studs over which the sea cliffs drop from the terraces to the sea
 local PATH_BANK = 7 -- studs beside a trail where the ground blends back into the terraces
+-- Highlands of Kingshaven: flat-topped hills that the terracing turns into stacked mesas
+local MESAS = {
+	{ X = 235, Z = -195, R = 115, H = 22 }, -- north-east highlands
+	{ X = -235, Z = -165, R = 120, H = 18 }, -- north-west highlands
+	{ X = -330, Z = 40, R = 75, H = 12 }, -- west lookout
+	{ X = 150, Z = -340, R = 60, H = 10 }, -- north bluff
+}
 
 for _, island in WorldData.Islands do
 	island.Influence = island.Radius * (1 + island.Wobble + 0.08) * (1 + SHELF) + 8
@@ -112,25 +119,32 @@ local function mainRaw(island: WorldData.Island, x: number, z: number): number
 		-- the land rises away from the town basin, highest in the north
 		local tx, tz = x - Town.X, z - Town.Z
 		local dT = math.max(0, math.sqrt(tx * tx + tz * tz) - Town.Radius)
-		local hmax = 8 + 30 * smoothstep(0.55, 0.05, south) + 12 * smoothstep(-0.3, -0.9, south)
+		local hmax = 10 + 32 * smoothstep(0.55, 0.05, south) + 12 * smoothstep(-0.3, -0.9, south)
 		local n = Noise.Fbm2(x * 0.011, z * 0.011, island.Seed + 9, 3)
 		local e = Town.Height + hmax * (1 - math.exp(-dT / 80)) * (0.8 + 0.2 * (n + 1))
 		local lx, lz = x - Lighthouse.X, z - Lighthouse.Z
 		local ld = math.sqrt(lx * lx + lz * lz)
 		e += Lighthouse.HillHeight * smooth(1 - ld / Lighthouse.HillRadius)
+		for _, m in MESAS do
+			local mx, mz = x - m.X, z - m.Z
+			local md = mx * mx + mz * mz
+			if md < m.R * m.R then
+				e += m.H * smoothstep(m.R, m.R * 0.45, math.sqrt(md))
+			end
+		end
 
-		-- coast: cliffs drop into deep water, beaches slope gently into the shallows
+		-- terraces (sharp on the cliff sides, soft hills towards the beaches)
+		if e > Town.Height then
+			local jitter = (n + 1) * 2.4 + Noise.Fbm2(x * 0.03, z * 0.03, island.Seed + 31, 2) * 1.5
+			local q = terrace(e + jitter)
+			e += (math.max(q, Town.Height) - e) * (0.45 + 0.55 * cliff)
+		end
+
+		-- coast: one tall sea cliff drops into deep water, beaches slope gently into the shallows
 		local cliffH = -7 + (e + 7) * smoothstep(0, CLIFF_COAST, cd)
 		local beachW = island.Radius * BEACH
 		local beachH = if cd < beachW then -2.5 + 5.5 * smooth(cd / beachW) else 3 + (e - 3) * smoothstep(beachW, beachW + 70, cd)
 		h = beachH + (cliffH - beachH) * cliff
-
-		-- terraces (sharp on the cliff sides, soft hills towards the beaches)
-		if h > Town.Height then
-			local jitter = (n + 1) * 2.4 + Noise.Fbm2(x * 0.03, z * 0.03, island.Seed + 31, 2) * 1.5
-			local q = terrace(h + jitter)
-			h += (math.max(q, Town.Height) - h) * (0.45 + 0.55 * cliff)
-		end
 		h += Noise.Fbm2(x * 0.06, z * 0.06, island.Seed + 13, 2) * 0.6 * smoothstep(3, 8, h)
 
 		-- flat summit for the lighthouse
@@ -416,8 +430,10 @@ function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, i
 		if slope > 0.45 then
 			return "Ground"
 		end
+		-- lush leafy jungle floor on the terraces, brighter meadows in and around the town
 		local n = Noise.Fbm2(x * 0.02, z * 0.02, 777, 2)
-		if n > 0.12 then
+		local inTown = tx * tx + tz * tz < (Town.Radius + 15) * (Town.Radius + 15)
+		if n > (if inTown or h < 9 then 0.25 else -0.3) then
 			return "LeafyGrass"
 		end
 		return "Grass"

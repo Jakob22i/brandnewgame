@@ -90,15 +90,15 @@ WorldData.Paths = {
 	{ Name = "TavernPath", Width = 8, Material = "Sand", Points = { { -30, 120 }, { -57, 120 } }, To = "Tavern" },
 	{ Name = "TradingPostPath", Width = 8, Material = "Sand", Points = { { 0, 80 }, { 0, 43 } }, To = "TradingPost" },
 	{
-		Name = "LighthouseTrail", Width = 7, Material = "Ground", Ramp = true, To = "Lighthouse",
+		Name = "LighthouseTrail", Width = 7, Material = "Sand", Ramp = true, To = "Lighthouse",
 		Points = { { 0, 54 }, { 22, 50 }, { 32, 22 }, { 28, -28 }, { 46, -74 }, { 50, -112 }, { 22, -140 }, { -14, -158 }, { -30, -190 }, { -20, -222 }, { 0, -234 } },
 	},
 	{
-		Name = "LagoonTrail", Width = 6, Material = "Ground", Ramp = true, To = "Lagoon", Bridges = { 10 },
+		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 10 },
 		Points = { { 28, 86 }, { 70, 74 }, { 120, 64 }, { 170, 50 }, { 215, 34 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
 	},
 	{
-		Name = "WestTrail", Width = 6, Material = "Ground", Ramp = true, To = "Lookout",
+		Name = "WestTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lookout",
 		Points = { { -28, 86 }, { -70, 74 }, { -120, 64 }, { -170, 52 }, { -215, 36 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
 	},
 	{ Name = "EastBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { 80, 300 }, { 130, 296 }, { 186, 302 }, { 236, 318 }, { 280, 334 } } },
@@ -173,7 +173,7 @@ end
 
 WorldData.SpawnPoint = { X = 0, Z = 182 }
 -- The lighthouse stands on a flat summit (SummitRadius) on top of the northern terraces
-WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 26, HillRadius = 120, SummitRadius = 30 }
+WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 30, HillRadius = 130, SummitRadius = 30 }
 
 -- No PvP, no cannon damage and no skeletons inside the haven
 WorldData.SafeZone = { X = 0, Z = 160, Radius = 800 }
