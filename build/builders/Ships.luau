@@ -62,12 +62,12 @@ local STYLES = {
 		ForefootT = 0.3,
 		Rake = 5,
 		SternRake = 1.8,
-		Bulwark = 2.6,
+		Bulwark = 2.9,
 		CastleBulwark = 1.5,
-		Spring = 0.35,
-		BowSpring = 0.9,
-		BowRise = 1.6,
-		SternRise = 1.0,
+		Spring = 0.6,
+		BowSpring = 1.4,
+		BowRise = 2.4,
+		SternRise = 1.8,
 		BowRamp = 6,
 		SternRamp = 4.5,
 		UB = 0.36,
@@ -85,12 +85,12 @@ local STYLES = {
 			{
 				Z = -4,
 				Base = "Main",
-				Top = 37,
+				Top = 39.5,
 				Main = true,
-				Nest = 30.2,
+				Nest = 31.4,
 				Yards = {
-					{ Y = 17, W = 20, H = 10, Belly = 1.7, Strips = 5, Emblem = true },
-					{ Y = 28.6, W = 15, H = 10.6, Belly = 1.3, Strips = 3 },
+					{ Y = 18.4, W = 22.5, H = 12, Strips = 5, Emblem = true },
+					{ Y = 30.2, W = 17.5, H = 11.4, Strips = 5 },
 				},
 			},
 		},
@@ -112,7 +112,7 @@ local STYLES = {
 		Wale = rgb(46, 35, 28),
 		Bottom = rgb(58, 52, 46),
 		Trim = rgb(170, 128, 62),
-		Deck = rgb(152, 118, 84),
+		Deck = rgb(118, 92, 70),
 		Rail = rgb(74, 52, 37),
 		Accent = rgb(110, 34, 30),
 		Pennant = rgb(120, 28, 26),
@@ -125,12 +125,12 @@ local STYLES = {
 		ForefootT = 0.3,
 		Rake = 6.5,
 		SternRake = 2.4,
-		Bulwark = 2.8,
+		Bulwark = 3.1,
 		CastleBulwark = 1.6,
-		Spring = 0.4,
-		BowSpring = 1.0,
-		BowRise = 1.8,
-		SternRise = 1.3,
+		Spring = 0.7,
+		BowSpring = 1.6,
+		BowRise = 3.0,
+		SternRise = 2.2,
 		BowRamp = 8,
 		SternRamp = 5,
 		UB = 0.33,
@@ -148,21 +148,21 @@ local STYLES = {
 			{
 				Z = -13,
 				Base = "Main",
-				Top = 41,
+				Top = 45,
 				Yards = {
-					{ Y = 21, W = 23, H = 12, Belly = 1.9, Strips = 5, Emblem = true },
-					{ Y = 34, W = 17.5, H = 12, Belly = 1.4, Strips = 3 },
+					{ Y = 22.5, W = 27, H = 14, Strips = 5, Emblem = true },
+					{ Y = 36.6, W = 21, H = 13.4, Strips = 5 },
 				},
 			},
 			{
 				Z = 4,
 				Base = "Main",
-				Top = 47,
+				Top = 51,
 				Main = true,
-				Nest = 37.5,
+				Nest = 40.4,
 				Yards = {
-					{ Y = 22, W = 25, H = 13, Belly = 2.0, Strips = 5, Emblem = true },
-					{ Y = 36, W = 19, H = 13, Belly = 1.5, Strips = 3 },
+					{ Y = 23.5, W = 30, H = 15, Strips = 5, Emblem = true },
+					{ Y = 38.6, W = 23, H = 14.4, Strips = 5 },
 				},
 			},
 		},
@@ -185,7 +185,7 @@ local STYLES = {
 		Wale = rgb(40, 31, 26),
 		Bottom = rgb(54, 49, 45),
 		Trim = rgb(126, 36, 32),
-		Deck = rgb(146, 112, 80),
+		Deck = rgb(112, 88, 67),
 		Rail = rgb(66, 46, 33),
 		Accent = rgb(126, 36, 32),
 		Pennant = rgb(128, 30, 28),
@@ -198,12 +198,12 @@ local STYLES = {
 		ForefootT = 0.27,
 		Rake = 8,
 		SternRake = 3.0,
-		Bulwark = 3.0,
+		Bulwark = 3.3,
 		CastleBulwark = 2.0,
-		Spring = 0.45,
-		BowSpring = 1.1,
-		BowRise = 2.6,
-		SternRise = 2.6,
+		Spring = 0.8,
+		BowSpring = 1.8,
+		BowRise = 3.6,
+		SternRise = 3.2,
 		BowRamp = 10,
 		SternRamp = 6,
 		UB = 0.3,
@@ -221,31 +221,31 @@ local STYLES = {
 			{
 				Z = -33,
 				Base = "FC",
-				Top = 51,
+				Top = 56,
 				Yards = {
-					{ Y = 26, W = 27, H = 13, Belly = 2.2, Strips = 5, Emblem = true },
-					{ Y = 39.5, W = 20, H = 12.4, Belly = 1.6, Strips = 3 },
+					{ Y = 27.5, W = 32, H = 15, Strips = 5, Emblem = true },
+					{ Y = 42.6, W = 25, H = 14.4, Strips = 5 },
 				},
 			},
 			{
 				Z = -4,
 				Base = "Main",
-				Top = 63,
+				Top = 70,
 				Main = true,
-				Nest = 41.6,
+				Nest = 45.2,
 				Yards = {
-					{ Y = 25, W = 32, H = 15.5, Belly = 2.6, Strips = 5, Emblem = true },
-					{ Y = 40, W = 25, H = 14.3, Belly = 2.0, Strips = 5 },
-					{ Y = 55, W = 17, H = 9.6, Belly = 1.4, Strips = 3 },
+					{ Y = 27, W = 38, H = 17.5, Strips = 5, Emblem = true },
+					{ Y = 44.6, W = 30, H = 16.8, Strips = 5 },
+					{ Y = 60.5, W = 21, H = 11.6, Strips = 3 },
 				},
 			},
 			{
 				Z = 27,
 				Base = "QD",
-				Top = 52,
+				Top = 57,
 				Yards = {
-					{ Y = 30, W = 23, H = 12, Belly = 2.3, Strips = 5, Emblem = true },
-					{ Y = 42, W = 17, H = 11.2, Belly = 1.7, Strips = 3 },
+					{ Y = 31, W = 27, H = 13.5, Strips = 5, Emblem = true },
+					{ Y = 44.6, W = 21, H = 12.8, Strips = 5 },
 				},
 			},
 		},
@@ -277,7 +277,7 @@ local STYLES = {
 		Wale = rgb(30, 24, 22),
 		Bottom = rgb(44, 40, 38),
 		Trim = rgb(196, 150, 66),
-		Deck = rgb(134, 102, 74),
+		Deck = rgb(106, 83, 64),
 		Rail = rgb(58, 41, 31),
 		Accent = rgb(196, 150, 66),
 		Pennant = rgb(130, 28, 26),
@@ -465,7 +465,7 @@ end
 
 -- Box whose outer face spans the (roughly planar) quad A B (bottom edge, fore->aft)
 -- C D (top edge). It is pushed `thick` inward (away from `outward`) and `proud` outward.
-local function quadPlank(parent: any, A: any, B: any, C: any, D: any, thick: number, outward: any, proud: number, props: { [string]: any })
+local function quadPlank(parent: any, A: any, B: any, C: any, D: any, thick: number, outward: any, proud: number, props: { [string]: any }, clipA: boolean?, clipB: boolean?)
 	local along = (B + D - A - C) * 0.5
 	local upv = (C + D - A - B) * 0.5
 	local len = along.Magnitude
@@ -483,9 +483,18 @@ local function quadPlank(parent: any, A: any, B: any, C: any, D: any, thick: num
 	local n = if X:Dot(outward) >= 0 then X else X * -1
 	local center = (A + B + C + D) * 0.25 - n * (thick / 2 - proud)
 	-- overlap the neighbours just enough to close the gaps a box leaves on a tapered quad
+	-- (not past the stem / transom: clipA / clipB keep that end flush)
 	local spread = math.abs((B - A).Magnitude - (D - C).Magnitude)
+	local extra = 0.08 + spread * 0.5
+	if clipA and clipB then
+		extra = 0
+	elseif clipA then
+		center += Z * (extra / 2)
+	elseif clipB then
+		center -= Z * (extra / 2)
+	end
 	return P.part(parent, merge({
-		Size = V(thick, h + 0.14, len + 0.08 + spread * 0.5),
+		Size = V(thick, h + 0.14, len + extra),
 		CFrame = fromMatrix(center, X, Y, Z),
 	}, props))
 end
@@ -661,13 +670,13 @@ local SAIL_GAP = 0.45
 local SAIL_THICK = 0.26
 
 local function buildSail(folder: any, yard: any, y: any, mastIndex: number, yardIndex: number)
-	local width, height, belly = y.W, y.H, y.Belly * 1.25
-	-- a wide flat centre cloth (carries the emblem) and side cloths curving aft
-	local fr = if y.Strips >= 5 then { -0.5, -0.35, -0.19, 0.19, 0.35, 0.5 } else { -0.5, -0.22, 0.22, 0.5 }
-	local flat = if y.Strips >= 5 then 0.19 else 0.22
+	local width, height = y.W, y.H
+	local belly = width * 0.1
+	-- the cloths follow a round arc bellying forward; the flat centre cloth carries the emblem
+	local fr = if y.Strips >= 5 then { -0.5, -0.37, -0.175, 0.175, 0.37, 0.5 } else { -0.5, -0.2, 0.2, 0.5 }
 	local function zAt(x: number): number
-		local t = clamp((math.abs(x) / width - flat) / (0.5 - flat), 0, 1)
-		return -0.5 - belly * (1 - t ^ 1.7)
+		local t = math.abs(x) / (width / 2)
+		return -0.5 - belly * (1 - t ^ 2)
 	end
 	local pts = {}
 	for i, f in fr do
@@ -682,11 +691,11 @@ local function buildSail(folder: any, yard: any, y: any, mastIndex: number, yard
 		local yaw = math.atan2(-d.Z, d.X)
 		local edge = math.abs(mid.X) / (width / 2)
 		-- the foot curves up a little in the middle
-		local h = height * (1 - 0.05 * (1 - edge ^ 1.5))
+		local h = height * (1 - 0.07 * (1 - edge ^ 1.5))
 		local c0 = CF(mid.X, -(SAIL_GAP + h / 2), mid.Z) * Angles(0, yaw, 0)
 		local sail = P.part(folder, {
 			Name = "Sail",
-			Size = V(d.Magnitude + 0.12, h, SAIL_THICK),
+			Size = V(d.Magnitude + 0.3, h, SAIL_THICK),
 			CFrame = yard.CFrame * c0,
 			Mat = "Fabric",
 			Color = shade(SAIL_BLACK, 1 + 0.08 * (hash(mastIndex, yardIndex, i) - 0.5)),
@@ -833,6 +842,21 @@ function Ships.Build(id: string, def: any)
 		return shade(base, k)
 	end
 
+	-- u near the stem where the hull line v(u) is `x` studs off the centre line
+	local STEM_HALF = 0.5
+	local function uAtX(vf: (number) -> number, x: number): number
+		local lo, hi = 0, 0.06
+		for _ = 1, 24 do
+			local mid = (lo + hi) / 2
+			if G.point(mid, vf(mid), 1).X < x then
+				lo = mid
+			else
+				hi = mid
+			end
+		end
+		return hi
+	end
+
 	for r, row in rows do
 		local kind = row.Kind
 		local us = if r % 2 == 0 then fineB else fineA
@@ -844,15 +868,22 @@ function Ships.Build(id: string, def: any)
 		local proud = if kind == "wale" then 0.22 else -(row.Recess or 0)
 		for i, seg in segs do
 			local ua, ub = seg[1], seg[2]
+			-- strakes butt against the side of the stem post instead of meeting at the
+			-- centre line (a box there would poke its skewed corner out the other side)
+			local uaB, uaT = ua, ua
+			if ua <= 1e-6 and not bottom then
+				uaB = uAtX(row.V0, STEM_HALF)
+				uaT = uAtX(row.V1, STEM_HALF)
+			end
 			for _, side in { -1, 1 } do
-				local A, B = G.point(ua, row.V0(ua), side), G.point(ub, row.V0(ub), side)
-				local C, D = G.point(ua, row.V1(ua), side), G.point(ub, row.V1(ub), side)
+				local A, B = G.point(uaB, row.V0(uaB), side), G.point(ub, row.V0(ub), side)
+				local C, D = G.point(uaT, row.V1(uaT), side), G.point(ub, row.V1(ub), side)
 				quadPlank(hull, A, B, C, D, thick, V(side, 0, 0), proud, {
 					Name = if kind == "wale" then "Wale" else "Strake",
 					Mat = "WoodPlanks",
 					Color = rowColor(kind, r, i, side),
 					CanCollide = not bottom,
-				})
+				}, ua <= 1e-6, false)
 			end
 		end
 		-- transom strake
@@ -885,7 +916,7 @@ function Ships.Build(id: string, def: any)
 	local vTrim = (G.WaistTop - 0.6 - s.Keel) / (G.WaistTop - s.Keel)
 	for _, side in { -1, 1 } do
 		local top = hullLine(2, side)
-		local keep = simplify(top, 0.15, 30)
+		local keep = simplify(top, 0.2, 30)
 		for k = 1, #keep - 1 do
 			local a, b = top[keep[k]], top[keep[k + 1]]
 			local inA = V(-side * 0.3, 0.15, 0)
@@ -902,7 +933,7 @@ function Ships.Build(id: string, def: any)
 		local run = {}
 		local function flush()
 			if #run >= 2 then
-				local keep = simplify(run, 0.15, 30)
+				local keep = simplify(run, 0.25, 30)
 				for k = 1, #keep - 1 do
 					P.plank(hull, run[keep[k]], run[keep[k + 1]], 0.2, 0.24, deco({ Name = "CastleTrim", Mat = "Metal", Color = s.Trim }))
 				end
@@ -937,10 +968,12 @@ function Ships.Build(id: string, def: any)
 	local stemTop = stemPts[#stemPts] + V(0, 0.8, -1.1)
 	table.insert(stemPts, stemTop)
 	do
-		local keep = simplify(stemPts, 0.07, 30)
+		local keep = simplify(stemPts, 0.05, 30)
 		for k = 1, #keep - 1 do
 			local a, b = stemPts[keep[k]], stemPts[keep[k + 1]]
-			P.plank(hull, a, b, 1.3, 2.1, { Name = "Stem", Mat = "Wood", Color = shade(s.Wale, 1.2), CanCollide = false })
+			-- extend each piece a little so the joints of the curve overlap without notches
+			local d = (b - a).Unit * 0.45
+			P.plank(hull, a - d, b + d, 1.1, 1.6, { Name = "Stem", Mat = "Wood", Color = shade(s.Wale, 1.2), CanCollide = false })
 		end
 		local keelPts = {}
 		for i, u in fineA do
@@ -1263,13 +1296,25 @@ function Ships.Build(id: string, def: any)
 	P.beam(fittings, jibStart + jibUp, jibEnd + jibUp, spritD * 0.55, deco({ Name = "JibBoom", Mat = "Wood", Color = SPAR }))
 	P.part(fittings, deco({ Name = "BowspritCap", Size = V(spritD + 0.4, spritD * 1.9, 0.6), CFrame = P.lookAt(spritEnd, spritEnd + dirB) * CF(0, spritD * 0.3, 0), Mat = "Wood", Color = s.Wale }))
 	jibEnd = jibEnd + jibUp
-	-- figurehead under the bowsprit
+	-- gilded figurehead leaning out under the bowsprit, and curved head rails
+	-- sweeping from the bow planking to the stem head
 	do
-		local head = stemTop + V(0, -1.7, -0.8)
-		P.plank(fittings, stemTop + V(0, -0.2, 0.2), head, 0.8, 1.0, deco({ Name = "Figurehead", Mat = "Metal", Color = s.Figure }))
-		P.part(fittings, deco({ Name = "FigureheadHead", Shape = "Ball", Size = V(1.15, 1.15, 1.15), CFrame = CF(head + V(0, 0.25, -0.2)), Mat = "Metal", Color = s.Figure }))
+		local fs = clamp(L / 80, 0.6, 1.1)
+		local foot = stemTop + V(0, -2.7, 0.5) * fs
+		local shoulder = stemTop + V(0, -0.6, -1.25) * fs
+		P.plank(fittings, foot, shoulder, 0.85 * fs, 0.95 * fs, deco({ Name = "Figurehead", Mat = "Metal", Color = s.Figure }))
+		P.part(fittings, deco({ Name = "FigureheadHead", Shape = "Ball", Size = V(0.95, 0.95, 0.95) * fs, CFrame = CF(shoulder + V(0, 0.45, -0.25) * fs), Mat = "Metal", Color = s.Figure }))
 		for _, side in { -1, 1 } do
-			P.plank(fittings, head + V(0, 0.1, 0.4), head + V(side * 1.3, 0.9, 1.6), 0.25, 0.7, deco({ Name = "FigureheadWing", Mat = "Metal", Color = s.Figure }))
+			P.plank(fittings, shoulder + V(side * 0.2, -0.2, 0.3) * fs, shoulder + V(side * 1.25, -1.3, 2.1) * fs, 0.2, fs, deco({ Name = "FigureheadWing", Mat = "Metal", Color = s.Figure }))
+		end
+		local zr = G.point(0, 2, 1).Z + s.FC.Len * 0.3
+		for _, side in { -1, 1 } do
+			local t = G.top(zr, side)
+			local p0 = V(t.X + side * 0.15, t.Y - 1.1, zr)
+			local p2 = stemTop + V(side * 0.45, -1.5, 0.7)
+			local p1 = (p0 + p2) * 0.5 + V(side * 0.35, -0.8, 0)
+			P.plank(fittings, p0, p1, 0.32, 0.4, deco({ Name = "HeadRail", Mat = "Wood", Color = s.Rail }))
+			P.plank(fittings, p1, p2, 0.32, 0.4, deco({ Name = "HeadRail", Mat = "Wood", Color = s.Rail }))
 		end
 	end
 	-- bobstay
@@ -1397,10 +1442,11 @@ function Ships.Build(id: string, def: any)
 
 		if m.Nest then
 			local ny = deckTop + m.Nest
-			P.pillar(rigging, 0, m.Z, ny, ny + 0.4, 5.0, { Name = "CrowsNestFloor", Mat = "WoodPlanks", Color = s.Rail, CanCollide = false })
-			P.pillar(rigging, 0, m.Z, ny + 0.4, ny + 2.1, 4.7, deco({ Name = "CrowsNest", Mat = "WoodPlanks", Color = shade(s.Hull, 1.15) }))
-			P.pillar(rigging, 0, m.Z, ny + 2.1, ny + 2.45, 5.1, deco({ Name = "CrowsNestRim", Mat = "Wood", Color = s.Rail }))
-			P.pillar(rigging, 0, m.Z, ny + 0.75, ny + 1.0, 4.85, deco({ Name = "CrowsNestBand", Mat = "Metal", Color = s.Trim }))
+			local ns = clamp(L / 80, 0.72, 1)
+			P.pillar(rigging, 0, m.Z, ny, ny + 0.4, 5.0 * ns, { Name = "CrowsNestFloor", Mat = "WoodPlanks", Color = s.Rail, CanCollide = false })
+			P.pillar(rigging, 0, m.Z, ny + 0.4, ny + 2.1, 4.7 * ns, deco({ Name = "CrowsNest", Mat = "WoodPlanks", Color = shade(s.Hull, 1.15) }))
+			P.pillar(rigging, 0, m.Z, ny + 2.1, ny + 2.45, 5.1 * ns, deco({ Name = "CrowsNestRim", Mat = "Wood", Color = s.Rail }))
+			P.pillar(rigging, 0, m.Z, ny + 0.75, ny + 1.0, 4.85 * ns, deco({ Name = "CrowsNestBand", Mat = "Metal", Color = s.Trim }))
 		end
 
 		-- yards + sails
