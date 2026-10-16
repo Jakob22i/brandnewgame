@@ -19,17 +19,6 @@ local PI = math.pi
 local IRON = O.IRON
 local DARK = O.DARK
 
--- Kept for other builders that used the old helpers
-function Town.Lamp(parent: any, x: number, y: number, z: number, height: number?)
-	O.LanternPost(parent, CF(x, y, z), height)
-end
-function Town.Crate(parent: any, cf: any, size: number?)
-	O.Crate(parent, cf * CF(0, -(size or 2.4) / 2, 0), size)
-end
-function Town.Barrel(parent: any, x: number, y: number, z: number)
-	O.Barrel(parent, CF(x, y, z))
-end
-
 -- Shopkeepers ------------------------------------------------------------------------------------
 
 local SHOPKEEPERS = {
@@ -236,9 +225,9 @@ local function shopShell(m: any, c: { [string]: any }, g: (number, number) -> nu
 		local bottom = minG - 2
 		O.Part(m, "Plinth", V(W + 0.8, F - 0.6 - bottom, Db + 0.8), CF(0, (F - 0.6 + bottom) / 2, zc), rgb(132, 126, 116), "Cobblestone")
 		O.Part(m, "PlinthCap", V(W + 1.4, 0.5, Db + 1.4), CF(0, F - 0.75, zc), rgb(150, 144, 132), "Slate")
-		O.Stilts(m, -half, half, zf + 0.6, pz, F - 0.7, g, { Spacing = 7, Color = c.StiltColor })
+		O.Stilts(m, -half, half, zf + 0.6, pz, F - 0.7, g, { Spacing = 9, Color = c.StiltColor })
 	else
-		O.Stilts(m, -half, half, zb, pz, F - 0.7, g, { Spacing = 6.5, Color = c.StiltColor })
+		O.Stilts(m, -half, half, zb, pz, F - 0.7, g, { Spacing = 9, Color = c.StiltColor, NoBackBraces = true })
 	end
 
 	-- Floors --------------------------------------------------------------------------------
@@ -315,11 +304,11 @@ local function shopShell(m: any, c: { [string]: any }, g: (number, number) -> nu
 			O.Part(m, "PorchBeam", V(0.8, 0.8, Pd + 0.6), CF(side * (half - 0.5), F + Hw - 0.4, zf + Pd / 2), trim, "Wood")
 		end
 		-- open gable truss above the sign: collar beam and king post
-		local collarY = F + Hw + rise * 0.56
-		O.Part(m, "Collar", V(W * 0.44 + 0.6, 0.7, 0.8), CF(0, collarY, tz), trim, "Wood", { CanCollide = false })
-		O.Part(m, "KingPost", V(0.7, rise * 0.44, 0.7), CF(0, collarY + rise * 0.22, tz), trim, "Wood", { CanCollide = false })
-		local sw = math.min(W * 0.52, 13)
-		O.Sign(m, CF(0, F + Hw + 1.75, tz), sw, 2.6, title, { TwoSided = false, Color = c.SignColor })
+		local collarY = F + Hw + rise * 0.74
+		O.Part(m, "Collar", V(W * 0.26 + 0.6, 0.7, 0.8), CF(0, collarY, tz), trim, "Wood", { CanCollide = false })
+		O.Part(m, "KingPost", V(0.7, rise * 0.26, 0.7), CF(0, collarY + rise * 0.13, tz), trim, "Wood", { CanCollide = false })
+		local sw = math.min(W * 0.5, 12.5)
+		O.Sign(m, CF(0, F + Hw + 1.75, tz + 0.1), sw, 2.6, title, { TwoSided = false, Color = c.SignColor, Emblem = c.Emblem, EmblemScale = 0.9 })
 		info.SignTop = F + Hw + 3.1
 		info.TieZ = tz
 	else
@@ -340,7 +329,7 @@ local function shopShell(m: any, c: { [string]: any }, g: (number, number) -> nu
 		-- the sign stands on the porch roof
 		local sw = math.min(W * 0.55, 14)
 		local signY = ly + 1.7
-		O.Sign(m, CF(0, signY, tz + 0.2), sw, 2.6, title, { Color = c.SignColor })
+		O.Sign(m, CF(0, signY, tz + 0.2), sw, 2.6, title, { Color = c.SignColor, Emblem = c.Emblem, EmblemScale = 0.9 })
 		for _, x in { -sw * 0.3, sw * 0.3 } do
 			O.Part(m, "SignPost", V(0.35, 1.6, 0.35), CF(x, ly + 0.2, tz + 0.05), trim, "Wood", { CanCollide = false })
 		end
@@ -455,6 +444,7 @@ local function decorateShipwright(m: any, info: { [string]: any }, g: (number, n
 	for _, side in { -1, 1 } do
 		O.Stick(m, "Stringer", (slip * CF(side * 3.6, keelY + 5.0, -9.5)).Position, (slip * CF(side * 4.3, keelY + 5.6, 8.5)).Position, 0.4, 0.5, rgb(160, 120, 76), "Wood", { CanCollide = false })
 	end
+	O.Hoist(m, slip * CF(0, base, 0.5), 16, 7.4)
 	O.Lumber(m, CF(half + 6, base, -13.5) * Angles(0, PI / 2, 0), 10, 3)
 	O.Sawhorse(m, CF(half + 3.8, g(half + 3.8, zf + 5), zf + 5) * Angles(0, 0.2, 0))
 	O.Logs(m, CF(-half - 3.2, g(-half - 3.2, -3), -3) * Angles(0, PI / 2, 0), 8)
@@ -485,14 +475,15 @@ local function decorateMerchant(m: any, info: { [string]: any }, g: (number, num
 	-- a striped awning over each side window
 	for _, side in { -1, 1 } do
 		for _, wz in { -info.Db / 4, info.Db / 4 } do
-			for i = 0, 3 do
-				local z = info.zc + wz - 2.25 + (i + 0.5) * 1.125
-				O.Stick(m, "Awning", V(side * (half + 0.3), F + 6.9, z), V(side * (half + 2.2), F + 5.9, z), 1.13, 0.12, if i % 2 == 0 then rgb(196, 54, 46) else rgb(240, 230, 210), "Fabric", { CanCollide = false })
+			for i = 0, 2 do
+				local z = info.zc + wz - 2.25 + (i + 0.5) * 1.5
+				O.Stick(m, "Awning", V(side * (half + 0.3), F + 6.9, z), V(side * (half + 2.2), F + 5.9, z), 1.52, 0.12, if i % 2 == 0 then rgb(196, 54, 46) else rgb(240, 230, 210), "Fabric", { CanCollide = false })
 			end
 		end
 	end
-	-- the merchant's flag
+	-- the merchant's flag and a hand cart of goods
 	O.FlagPole(m, CF(-half - 1.4, g(-half - 1.4, zf + 1), zf + 1), 16, rgb(30, 110, 120))
+	O.Cart(m, CF(half + 4.2, g(half + 4.2, 3), 3) * Angles(0, PI / 2 + 0.25, 0))
 end
 
 -- Armory: weapon racks, cannonballs, a cannon ---------------------------------------------------------
@@ -511,11 +502,11 @@ local function decorateArmory(m: any, info: { [string]: any }, g: (number, numbe
 	-- a cannon guarding the steps
 	O.Cannon(m, CF(-7.2, g(-7.2, pz + 3.0), pz + 3.0) * Angles(0, -0.35, 0), 1.1)
 	O.Cannonballs(m, CF(7.0, g(7.0, pz + 2.4), pz + 2.4), 0.9)
-	-- crossed swords above the sign
-	local top = info.SignTop
-	for _, side in { -1, 1 } do
-		O.Cutlass(m, CF(side * 0.9, top + 0.3, info.TieZ + 0.3) * Angles(0, 0, side * math.rad(38)), 1.2)
-	end
+	-- practice yard beside the armory: straw dummies and a shooting target
+	local yx = half + 5.5
+	O.Dummy(m, CF(yx, g(yx, 2), 2) * Angles(0, -PI / 2 + 0.3, 0))
+	O.Dummy(m, CF(yx + 1, g(yx + 1, -4.5), -4.5) * Angles(0, -PI / 2 - 0.2, 0))
+	O.Target(m, CF(yx + 0.5, g(yx + 0.5, 8.5), 8.5) * Angles(0, -PI / 2 + 0.5, 0))
 	O.LanternPost(m, CF(5.8, g(5.8, pz + 2.6), pz + 2.6), 8)
 end
 
@@ -525,7 +516,7 @@ local function buildTradingPost(m: any, c: { [string]: any }, g: (number, number
 	local half, hd = W / 2, D / 2
 	local Hw = 9
 	O.Stilts(m, -half, half, -hd, hd, F - 0.7, g, { Spacing = 6 })
-	O.Deck(m, -half, half, -hd, hd, F, { AlongZ = true, Colors = O.HONEY })
+	O.Deck(m, -half, half, -hd, hd, F, { AlongZ = true, Colors = O.HONEY, MaxLen = 20, PlankW = 1.3 })
 	-- posts carrying the roof
 	local posts = {}
 	for _, x in { -half + 0.6, -half / 3, half / 3, half - 0.6 } do
@@ -593,11 +584,11 @@ local function buildTradingPost(m: any, c: { [string]: any }, g: (number, number
 	O.Barrel(m, CF(-half - 1.8, g(-half - 1.8, hd + 2), hd + 2))
 	O.Crate(m, CF(half + 1.8, g(half + 1.8, hd + 2.5), hd + 2.5) * Angles(0, 0.3, 0))
 	O.Sack(m, CF(half + 2.0, g(half + 2.0, hd + 5.0), hd + 5.0), rgb(196, 170, 120))
-	-- signboard over the front counter
-	O.Sign(m, CF(0, F + Hw + 1.6, hd - 0.2), math.min(W * 0.55, 13), 2.6, title, { Color = rgb(100, 64, 38) })
-	for _, x in { -3.5, 3.5 } do
-		O.Part(m, "SignPost", V(0.35, 1.6, 0.35), CF(x, F + Hw + 0.4, hd - 0.4), DARK, "Wood", { CanCollide = false })
-	end
+	-- carved sign hanging under the front beam, over the counter
+	O.Sign(m, CF(0, F + Hw - 2.25, hd - 0.6), 7.0, 2.0, title, { Color = rgb(100, 64, 38), Hang = 1.0, TwoSided = true })
+	-- a barrel emblem on the gable truss facing the square
+	O.Emblem(m, CF(half + 0.1, F + Hw + rise * 0.42, 0) * Angles(0, PI / 2, 0), "Barrel", 1.1)
+	O.Emblem(m, CF(-half - 0.1, F + Hw + rise * 0.42, 0) * Angles(0, -PI / 2, 0), "Barrel", 1.1)
 	-- flags on the ridge ends and bunting
 	O.FlagPole(m, CF(-half - 1.2, F + Hw + rise - 2, 0), 8, rgb(230, 170, 40), { Width = 3.6, Height = 2.2, Diameter = 0.35 })
 	O.Bunting(m, V(-half + 0.6, F + Hw - 1, hd - 0.4), V(half - 0.6, F + Hw - 1, hd - 0.4), { rgb(220, 60, 50), rgb(250, 210, 70), rgb(60, 130, 200), rgb(250, 246, 236) }, 10, 1.6)
@@ -619,7 +610,7 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 	local Hw = H1 + H2
 	local walls = O.HONEY
 	local back = rgb(84, 60, 42)
-	O.Stilts(m, -half, half, zb, pz, F - 0.7, g, { Spacing = 7 })
+	O.Stilts(m, -half, half, zb, pz, F - 0.7, g, { Spacing = 9, NoBackBraces = true })
 	O.Part(m, "Floor", V(W - 0.4, 0.7, Db - 0.4), CF(0, F - 0.35, zc), rgb(118, 86, 58), "WoodPlanks")
 	O.Deck(m, -half, half, zf, pz, F, { Colors = O.WOOD })
 	-- ground floor: wide counter opening + door; upper floor: windows and a balcony door
@@ -669,12 +660,12 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 		O.Stick(m, "KneeBrace", V(x, by - 2.2, pz - 0.45), V(x + (if x < 0 then 1.6 else -1.6), by - 0.6, pz - 0.45), 0.35, 0.35, DARK, "Wood", { CanCollide = false })
 	end
 	O.Part(m, "BalconyBeam", V(W + 0.6, 0.9, 1.0), CF(0, by - 0.55, pz - 0.45), DARK, "Wood")
-	O.Railing(m, V(-half + 0.5, by + 0.3, pz - 0.45), V(half - 0.5, by + 0.3, pz - 0.45), { Height = 3, Spacing = 2 })
+	O.Railing(m, V(-half + 0.5, by + 0.3, pz - 0.45), V(half - 0.5, by + 0.3, pz - 0.45), { Height = 3, Spacing = 3 })
 	for _, x in { -half + 0.45, half - 0.45 } do
-		O.Railing(m, V(x, by + 0.3, zf + 0.6), V(x, by + 0.3, pz - 0.45), { Height = 3, Spacing = 2 })
+		O.Railing(m, V(x, by + 0.3, zf + 0.6), V(x, by + 0.3, pz - 0.45), { Height = 3, Spacing = 3 })
 	end
 	-- the hanging anchor sign between the middle posts... above the balcony rail
-	O.Sign(m, CF(0, by + 4.6, pz - 0.2), 14, 2.8, title, { Color = rgb(92, 56, 34) })
+	O.Sign(m, CF(0, by + 4.6, pz - 0.2), 14, 2.8, title, { Color = rgb(92, 56, 34), Emblem = "Anchor", EmblemScale = 1.1 })
 	for _, x in { -5.2, 5.2 } do
 		O.Part(m, "SignPost", V(0.4, 2.4, 0.4), CF(x, by + 3.3 - 0.2, pz - 0.45), DARK, "Wood", { CanCollide = false })
 	end
@@ -696,8 +687,8 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 	end
 	for _, y in { 4.4, 6.2 } do
 		O.Part(m, "Shelf", V(W * 0.6, 0.25, 1.0), CF(0, F + y, zb + 0.9), rgb(120, 86, 56), "WoodPlanks", { CanCollide = false })
-		for i = 0, 9 do
-			O.Bottle(m, CF(-7 + i * 1.5, F + y + 0.13, zb + 0.9), O.Pick({ rgb(60, 120, 70), rgb(120, 60, 40), rgb(60, 80, 140), rgb(170, 130, 50) }))
+		for i = 0, 4 do
+			O.Bottle(m, CF(-6 + i * 3 + O.Range(-0.4, 0.4), F + y + 0.13, zb + 0.9), O.Pick({ rgb(60, 120, 70), rgb(120, 60, 40), rgb(60, 80, 140), rgb(170, 130, 50) }))
 		end
 	end
 	O.Mug(m, CF(-3, F + 3.23, zf - 0.4))
@@ -741,13 +732,13 @@ end
 
 local SHOP_STYLE = {
 	Shipwright = {
-		Walls = O.WOOD, Trim = rgb(70, 48, 32), Roof = { Style = "Shingle", Colors = O.TEAL_ROOF }, Shutter = rgb(44, 110, 150), DoorX = -9.2, SignColor = rgb(88, 56, 34),
+		Walls = O.WOOD, Trim = rgb(70, 48, 32), Roof = { Style = "Shingle", Colors = O.TEAL_ROOF }, Shutter = rgb(44, 110, 150), DoorX = -9.2, SignColor = rgb(88, 56, 34), Emblem = "Wheel",
 	},
 	Merchant = {
-		Walls = O.TEAL, Trim = rgb(66, 46, 32), Roof = { Style = "Shingle", Colors = O.RED_ROOF, AlongX = true, PorchColors = O.SHINGLE }, Shutter = rgb(170, 70, 50), DoorX = 9.2, SignColor = rgb(70, 46, 32), ShutterBoards = O.HONEY,
+		Walls = O.TEAL, Trim = rgb(66, 46, 32), Roof = { Style = "Shingle", Colors = O.RED_ROOF, AlongX = true, PorchColors = O.SHINGLE }, Shutter = rgb(170, 70, 50), DoorX = 9.2, SignColor = rgb(70, 46, 32), ShutterBoards = O.HONEY, Emblem = "Coin",
 	},
 	Armory = {
-		Walls = O.DRIFT, Trim = rgb(58, 42, 32), Roof = { Style = "Shingle", Colors = O.SLATE }, Shutter = rgb(140, 40, 36), Stone = true, DoorX = -7.6, SignColor = rgb(60, 44, 34), SideWindows = { -3.2, 3.2 }, Shelves = false,
+		Walls = O.DRIFT, Trim = rgb(58, 42, 32), Roof = { Style = "Shingle", Colors = O.SLATE }, Shutter = rgb(140, 40, 36), Stone = true, DoorX = -7.6, SignColor = rgb(60, 44, 34), SideWindows = { -3.2, 3.2 }, Shelves = false, Emblem = "Swords",
 	},
 }
 
@@ -790,6 +781,12 @@ local function buildShop(parent: any, shop: { [string]: any }, H: any)
 			decorateArmory(m, info, g)
 		end
 	end
+	-- a carved sign on a gallows post where the path arrives
+	local stairHalf = if shop.Id == "TradingPost" then 3.5 else 3
+	local sz = (info.StairEnd or (D / 2 + 8)) + 1.6
+	local sx = -(stairHalf + 3.8)
+	local short = (string.gsub(shop.Title, "^THE ", ""))
+	O.PostSign(m, CF(sx, g(sx, sz), sz), short, { Lantern = true, Light = false, Height = 8.8, Width = math.clamp(#short * 0.36, 3.4, 4.6) })
 	P.transform(m, origin)
 
 	-- the shopkeeper stands behind the counter, facing the street
@@ -811,6 +808,99 @@ local function buildShop(parent: any, shop: { [string]: any }, H: any)
 		})
 	end
 	return m, origin
+end
+
+-- Cottages of the outpost (no shop): small plank houses on stilts with a porch -----------------------
+-- spec: X, Z, Yaw (front = local +Z), W, D, Roof ("Thatch" | "Shingle"), Walls, Shutter, Name
+local function cottage(parent: any, spec: { [string]: any }, H: any)
+	O.Seed(math.floor(spec.X * 31 + spec.Z * 17) + 99)
+	local m = P.model(parent, spec.Name or "Cottage")
+	local base = (H.GetHeight(spec.X, spec.Z))
+	local origin = CF(spec.X, base, spec.Z) * Angles(0, spec.Yaw, 0)
+	local function g(lx: number, lz: number): number
+		local p = origin * V(lx, 0, lz)
+		return (H.GetHeight(p.X, p.Z)) - base
+	end
+	local W, D = spec.W or 12, spec.D or 10
+	local half = W / 2
+	local zf, zb = D / 2, -D / 2
+	local Pd = spec.Porch or 3.6
+	local pz = zf + Pd
+	local top = 0
+	for lx = -half, half, 3 do
+		for lz = zb, pz, 3 do
+			top = math.max(top, g(lx, lz))
+		end
+	end
+	local F = top + (spec.Lift or 2.4)
+	local Hw = spec.Hw or 7.2
+	local walls = spec.Walls or O.WOOD
+	local trim = spec.Trim or rgb(70, 50, 34)
+	local back = rgb(84, 60, 42)
+	local thatch = spec.Roof == "Thatch"
+	O.Stilts(m, -half, half, zb, pz, F - 0.6, g, { Spacing = 12, Braces = false })
+	O.Part(m, "Floor", V(W - 0.4, 0.6, D - 0.4), CF(0, F - 0.3, 0), rgb(110, 80, 54), "WoodPlanks")
+	O.Deck(m, -half, half, zf, pz, F, { MaxLen = 16, PlankW = 1.2 })
+	local doorX = spec.DoorX or -2.2
+	local winX = -doorX * 1.25
+	local plank = { Colors = walls, Back = back, PlankH = 1.45, MaxLen = 24, SolidBack = true }
+	local function wall(cf: any, len: number, holes: { any }?)
+		local o = table.clone(plank)
+		o.Holes = holes
+		O.PlankWall(m, cf, len, Hw, o)
+	end
+	wall(CF(0, F, zf), W, { { doorX - 1.6, doorX + 1.6, 0, 6.3 }, { winX - 1.3, winX + 1.3, 2.6, 5.2 } })
+	wall(CF(0, F, zb) * Angles(0, PI, 0), W)
+	wall(CF(-half, F, 0) * Angles(0, -PI / 2, 0), D, { { -1.3, 1.3, 2.6, 5.2 } })
+	wall(CF(half, F, 0) * Angles(0, PI / 2, 0), D)
+	O.Door(m, CF(doorX, F, zf + 0.05), 3.2, 6.3)
+	O.Window(m, CF(winX, F + 3.9, zf + 0.27), 2.6, 2.6, spec.Shutter)
+	O.Window(m, CF(-half, F + 3.9, 0) * Angles(0, -PI / 2, 0) * CF(0, 0, 0.27), 2.6, 2.6)
+	for _, x in { -half, half } do
+		for _, z in { zb, zf } do
+			O.Part(m, "CornerPost", V(1.0, Hw + 0.3, 1.0), CF(x, F + Hw / 2 - 0.1, z), O.Jitter(trim, 0.05), "Wood")
+		end
+	end
+	-- roof: front gable reaching over the porch
+	local rise = half * (if thatch then 0.95 else 0.8)
+	O.GableWall(m, CF(0, F + Hw, zf), W, rise - 0.1, { Colors = walls })
+	O.GableWall(m, CF(0, F + Hw, zb) * Angles(0, PI, 0), W, rise - 0.1, { Colors = walls })
+	O.Roof(m, CF(0, F + Hw, 0), W, D, { Style = spec.Roof, Colors = spec.RoofColors, Rise = rise, Front = Pd + 0.6, Back = 1.2, Edge = trim })
+	for _, x in { -half + 0.5, half - 0.5 } do
+		O.Part(m, "PorchPost", V(0.9, Hw - 0.2, 0.9), CF(x, F + (Hw - 0.2) / 2, pz - 0.45), O.Jitter(trim, 0.05), "Wood")
+	end
+	O.Part(m, "TieBeam", V(W + 0.4, 0.8, 0.9), CF(0, F + Hw - 0.4, pz - 0.45), trim, "Wood")
+	O.Lantern(m, CF(doorX + 2.4, F + Hw - 0.85, pz - 0.45), { Range = 12, Brightness = 0.9 })
+	-- steps and a bit of life on the porch
+	local run = O.Stairs(m, CF(doorX, F, pz), 4, math.max(0.8, F - g(doorX, pz + 2.5)))
+	O.Railing(m, V(doorX + 2.3, F, pz - 0.45), V(half - 0.5, F, pz - 0.45), { Height = 2.8, Spacing = 3.5 })
+	if spec.Props == "Fisher" then
+		O.Net(m, CF(half + 0.35, F + 3.6, 0) * Angles(0, PI / 2, 0), 5, 3.2)
+		O.Barrel(m, CF(winX + 1.4, F, zf + 1.6), { Scale = 0.8 })
+		O.RopeCoil(m, CF(winX - 0.6, F, zf + 2.2), 0.8)
+	elseif spec.Props == "Washing" then
+		O.Barrel(m, CF(half - 1.6, F, zf + 1.5), { Scale = 0.8 })
+		O.Stool(m, CF(winX - 0.8, F, zf + 1.6))
+		local a, b = V(half - 0.5, F + Hw - 1.4, pz - 0.45), V(half + 6.5, g(half + 6.5, pz - 1) + 5.6, pz - 1)
+		O.Part(m, "LinePole", V(0.45, 6.2, 0.45), CF(b.X, b.Y - 2.7, b.Z), O.DARK, "Wood")
+		O.Rod(m, "Washline", a, b, 0.08, O.ROPE, "Fabric", { CanCollide = false, CanQuery = false })
+		for i, col in { rgb(236, 230, 214), rgb(70, 110, 170), rgb(190, 60, 50) } do
+			local t = i / 4
+			local p = a:Lerp(b, t) - V(0, 0.2 + math.sin(t * PI) * 0.3, 0)
+			O.Part(m, "Laundry", V(1.0 + i * 0.15, 1.5, 0.08), P.lookAt(p - V(0, 0.75, 0), p - V(0, 0.75, 0) + (b - a)) * Angles(0, PI / 2, 0), col, "Fabric", { CanCollide = false, CanQuery = false })
+		end
+	else
+		O.Crate(m, CF(winX + 1.2, F, zf + 1.5) * Angles(0, 0.3, 0), 1.8)
+		O.Sack(m, CF(winX - 0.8, F, zf + 1.7))
+	end
+	-- a chimney pipe on the side
+	if spec.Chimney then
+		local cx = half - 2.2
+		O.Part(m, "Chimney", V(2.0, rise + 2.4, 2.0), CF(cx, F + Hw + (rise + 2.4) / 2 - 0.4, zb + 2.6), rgb(138, 128, 118), "Cobblestone")
+		O.Part(m, "ChimneyCap", V(2.5, 0.4, 2.5), CF(cx, F + Hw + rise + 2.2, zb + 2.6), rgb(100, 96, 92), "Slate")
+	end
+	P.transform(m, origin)
+	return m, F + base, run
 end
 
 -- Market stalls ------------------------------------------------------------------------------------------
@@ -837,8 +927,8 @@ local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: strin
 	-- goods
 	local fruit = { rgb(250, 150, 30), rgb(250, 214, 60), rgb(110, 190, 60), rgb(220, 50, 50), rgb(170, 70, 200) }
 	if kind == "Fruit" then
-		for i = 0, 3 do
-			O.Basket(m, CF(-3.3 + i * 2.2, 3.15, 1.0), fruit)
+		for i = 0, 2 do
+			O.Basket(m, CF(-2.6 + i * 2.6, 3.15, 1.0), fruit)
 		end
 		for i = 0, 2 do
 			O.Ball(m, "Coconut", V(4.9 + i * 0.3, 0.9 + (i % 2) * 0.8, -0.8 + i * 0.6), 1.0, rgb(110, 72, 40), "SmoothPlastic", { CanCollide = false })
@@ -1012,6 +1102,21 @@ local function lighthouse(parent: any, x: number, y: number, z: number)
 end
 
 -- Piers ----------------------------------------------------------------------------------------------------
+-- The pier deck (top y = Height) runs from MinZ to MaxZ like WorldData.Piers says; where the island
+-- is higher than the deck (the landward end under the boardwalk and the grassy bank) the planks
+-- climb over the ground as a ramp of cross boards, so the pier meets the boardwalk.
+
+-- Height of the boardwalk along the harbour front (follows the ground)
+local BOARDWALK_Z0, BOARDWALK_Z1 = 296, 306
+local function boardwalkHeight(H: any, x: number): number
+	local top = -math.huge
+	for _, dx in { -3, 0, 3 } do
+		for _, z in { BOARDWALK_Z0, (BOARDWALK_Z0 + BOARDWALK_Z1) / 2, BOARDWALK_Z1 } do
+			top = math.max(top, (H.GetHeight(x + dx, z)))
+		end
+	end
+	return math.max(top + 0.45, 5)
+end
 
 local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 	O.Seed(4242 + index * 97)
@@ -1020,37 +1125,85 @@ local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 	local hw = pd.HalfWidth
 	local len = pd.MaxZ - pd.MinZ
 	local midZ = (pd.MinZ + pd.MaxZ) / 2
-	-- deck: dark base (collision) + lengthwise planks with staggered joints
+	-- ground under the deck (highest point across the width)
+	local function groundAt(z: number): number
+		local top = -math.huge
+		for _, dx in { -hw, 0, hw } do
+			top = math.max(top, (H.GetHeight(x0 + dx, z)))
+		end
+		return top
+	end
+	-- where the bank drops below the deck
+	local shoreZ = pd.MinZ
+	for z = BOARDWALK_Z1, pd.MaxZ, 1 do
+		if groundAt(z) < y - 0.35 then
+			shoreZ = z
+			break
+		end
+	end
+	-- collision deck (WorldData geometry; the landward end is under the ground)
 	O.Part(pm, "Deck", V(hw * 2, 1, len), CF(x0, y - 0.75, midZ), O.DARKER, "Wood")
-	local strips = 8
+
+	-- the ramp over the bank: cross boards from the boardwalk down to the deck
+	local rampZ0 = BOARDWALK_Z1
+	local yTop = boardwalkHeight(H, x0)
+	local function rampY(z: number): number
+		local t = math.clamp((z - rampZ0) / math.max(1, shoreZ - rampZ0), 0, 1)
+		local lin = yTop + (y - yTop) * t
+		return math.max(lin, groundAt(z) + 0.4, y)
+	end
+	local bz = rampZ0
+	local bw = 1.5
+	while bz < shoreZ do
+		local zc = bz + bw / 2
+		local ya, yb = rampY(bz), rampY(bz + bw)
+		local tilt = math.atan2(ya - yb, bw)
+		local yc = (ya + yb) / 2 - 0.15
+		O.Part(pm, "RampBoard", V(hw * 2 - O.Range(0, 0.5), 0.3, bw - 0.14), CF(x0 + O.Range(-0.15, 0.15), yc, zc) * Angles(tilt, O.Range(-0.012, 0.012), 0), O.Jitter(O.Pick(O.WOOD), 0.08), "WoodPlanks")
+		bz += bw
+	end
+	for _, side in { -1, 1 } do
+		local px = x0 + side * (hw - 0.1)
+		local za = rampZ0
+		while za < shoreZ - 0.1 do
+			local zb = math.min(shoreZ, za + 9)
+			O.Stick(pm, "RampStringer", V(px, rampY(za) - 0.55, za), V(px, rampY(zb) - 0.55, zb), 0.6, 0.8, DARK, "Wood", { CanCollide = false })
+			za = zb
+		end
+	end
+
+	-- the deck over the water: lengthwise planks with staggered joints
+	local strips = 6
 	local sw = hw * 2 / strips
 	for i = 0, strips - 1 do
 		local px = x0 - hw + (i + 0.5) * sw
-		local zpos = pd.MinZ
+		local zpos = shoreZ - 0.6
 		local first = true
 		while zpos < pd.MaxZ - 0.5 do
-			local l = if first then O.Range(10, 40) else O.Range(30, 46)
+			local l = if first then O.Range(14, 44) else O.Range(34, 52)
 			first = false
 			local z1 = math.min(pd.MaxZ, zpos + l)
 			O.Part(pm, "Plank", V(sw - 0.12, 0.3, z1 - zpos - 0.12), CF(px, y - 0.15 - O.Range(0, 0.04), (zpos + z1) / 2), O.Jitter(O.Pick(O.WOOD), 0.07), "WoodPlanks")
 			zpos = z1
 		end
 	end
-	-- edge stringers and cross joists
+	local wetLen = pd.MaxZ - shoreZ
 	for _, side in { -1, 1 } do
-		O.Part(pm, "Stringer", V(0.8, 1.2, len), CF(x0 + side * (hw + 0.4), y - 0.75, midZ), DARK, "Wood")
+		O.Part(pm, "Stringer", V(0.8, 1.2, wetLen), CF(x0 + side * (hw + 0.4), y - 0.75, shoreZ + wetLen / 2), DARK, "Wood")
 	end
 	-- pilings in pairs, sticking up as posts along the walkway section
-	local railEnd = 446
+	local railEnd = 412
 	local pileZ = {}
-	local zp = pd.MinZ + 6
+	local zp = shoreZ + 3
 	while zp <= pd.MaxZ - 1 do
 		table.insert(pileZ, zp)
-		zp += 13
+		zp += 18
 	end
 	table.insert(pileZ, pd.MaxZ - 0.8)
-	for _, pz in pileZ do
-		O.Part(pm, "Joist", V(hw * 2 + 1.6, 0.9, 1.0), CF(x0, y - 1.8, pz), O.Jitter(DARK, 0.05), "Wood")
+	for k, pz in pileZ do
+		if k % 2 == 1 or k == #pileZ then
+			O.Part(pm, "Joist", V(hw * 2 + 1.6, 0.9, 1.0), CF(x0, y - 1.8, pz), O.Jitter(DARK, 0.05), "Wood")
+		end
 		for _, side in { -1, 1 } do
 			local px = x0 + side * (hw + 0.4)
 			local ground = (H.GetHeight(px, pz))
@@ -1058,35 +1211,51 @@ local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 			P.pillar(pm, px, pz, math.min(ground - 3, -26), postTop, 1.3, { Name = "Piling", Mat = "Wood", Color = O.Jitter(rgb(100, 74, 52), 0.08) })
 		end
 	end
-	-- rope railing between the posts on the walkway section
-	for k = 1, #pileZ - 1 do
-		local za, zb = pileZ[k], pileZ[k + 1]
-		if zb <= railEnd then
-			for _, side in { -1, 1 } do
-				local px = x0 + side * (hw + 0.4)
-				local a, b = V(px, y + 2.6, za), V(px, y + 2.6, zb)
-				local mid = (a + b) / 2 - V(0, 0.7, 0)
+	-- rope railing: posts on the ramp, then along the pilings to the first berth
+	local railPosts = {}
+	local rz = rampZ0 + 1
+	while rz < shoreZ - 2 do
+		table.insert(railPosts, { rz, rampY(rz) })
+		rz += 8
+	end
+	for _, pz in pileZ do
+		if pz <= railEnd then
+			table.insert(railPosts, { pz, y })
+		end
+	end
+	for k, rp in railPosts do
+		for _, side in { -1, 1 } do
+			local px = x0 + side * (hw + 0.4)
+			if rp[1] < shoreZ then
+				O.Part(pm, "RailPost", V(0.8, 3.6, 0.8), CF(px, rp[2] + 1.3, rp[1]), O.Jitter(rgb(100, 74, 52), 0.08), "Wood")
+			end
+			local nxt = railPosts[k + 1]
+			if nxt then
+				local topA = if rp[1] < shoreZ then rp[2] + 2.7 else y + 2.6
+				local topB = if nxt[1] < shoreZ then nxt[2] + 2.7 else y + 2.6
+				local a, b = V(px, topA, rp[1]), V(px, topB, nxt[1])
+				local mid = (a + b) / 2 - V(0, 0.6, 0)
 				O.Rod(pm, "Rope", a, mid, 0.2, O.ROPE, "Fabric", { CanCollide = false })
 				O.Rod(pm, "Rope", mid, b, 0.2, O.ROPE, "Fabric", { CanCollide = false })
 			end
 		end
 	end
 	-- mooring bollards at the dock slots
-	for _, bz in { 468, 532, 598, 662 } do
+	for _, bz2 in { 468, 532, 598, 662 } do
 		for _, side in { -1, 1 } do
-			O.Bollard(pm, CF(x0 + side * (hw - 0.9), y, bz))
+			O.Bollard(pm, CF(x0 + side * (hw - 0.9), y, bz2))
 		end
 	end
-	-- lantern posts every ~64 studs, alternating sides
-	local lz = pd.MinZ + 30
+	-- lantern posts every ~70 studs, alternating sides
+	local lz = shoreZ + 24
 	local flip = 1
 	while lz < pd.MaxZ - 20 do
 		O.LanternPost(pm, CF(x0 + flip * (hw - 0.6), y, lz) * Angles(0, if flip > 0 then -PI / 2 else PI / 2, 0), 8, { Range = 18, Brightness = 1.2 })
-		lz += 64
+		lz += 70
 		flip = -flip
 	end
 	-- cargo near the landward end and between the berths
-	local cz = pd.MinZ + 14
+	local cz = shoreZ + 8
 	O.Barrel(pm, CF(x0 - hw + 1.6, y, cz))
 	O.Barrel(pm, CF(x0 - hw + 1.7, y, cz + 2.2), { Color = rgb(150, 100, 60) })
 	O.Barrel(pm, CF(x0 - hw + 1.6, y, cz + 1.1) * CF(0, 2.6, 0), { Scale = 0.8 })
@@ -1098,7 +1267,7 @@ local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 	O.Crate(pm, CF(x0 - hw + 1.7, y, 565))
 	O.Barrel(pm, CF(x0 + hw - 1.6, y, 560))
 	O.RopeCoil(pm, CF(x0 + hw - 1.8, y, 570))
-	-- the far end: flag and a ladder down to the water
+	-- the far end: a black flag and ladders down to the water
 	O.FlagPole(pm, CF(x0, y, pd.MaxZ - 2), 16, rgb(20, 18, 22))
 	local flagPart = pm:FindFirstChild("Flag")
 	if flagPart then
@@ -1109,31 +1278,68 @@ local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 	for _, spot in { { x0, pd.MaxZ + 1.0 }, { x0 + hw + 1.0, 565 }, { x0 - hw - 1.0, 565 } } do
 		O.Part(pm, "Ladder", V(2, 10, 2), CF(spot[1], y - 5, spot[2]), rgb(110, 80, 54), "Wood", { Class = "TrussPart" })
 	end
-	return pm
+	return pm, shoreZ
 end
 
--- Boardwalk along the beach (part "Boardwalk" + planks and posts) ---------------------------------------------
-local function boardwalk(parent: any, y: number, H: any)
+-- Boardwalk along the harbour front (z 296..306): planks that follow the ground from the beach
+-- trail in the west to the one in the east, crossing the main street and the pier heads.
+-- "Boardwalk" itself is an invisible marker part spanning it; the planks are in BoardwalkDeck.
+local function boardwalk(parent: any, H: any)
 	O.Seed(777)
-	local bw = O.Part(parent, "Boardwalk", V(160, 1, 10), CF(0, y - 0.75, 301), O.DARKER, "Wood")
+	local x0, x1 = -84, 84
+	local z0, z1 = BOARDWALK_Z0, BOARDWALK_Z1
+	-- smoothed height profile every 4 studs
+	local prof = {}
+	for x = x0, x1, 4 do
+		prof[x] = boardwalkHeight(H, x)
+	end
+	local function hAt(x: number): number
+		local xa = math.clamp(math.floor((x - x0) / 4) * 4 + x0, x0, x1 - 4)
+		local t = (x - xa) / 4
+		return prof[xa] + (prof[xa + 4] - prof[xa]) * t
+	end
+	local avg = 0
+	for x = x0, x1, 4 do
+		avg += prof[x]
+	end
+	avg /= (x1 - x0) / 4 + 1
+	local bw = O.Part(parent, "Boardwalk", V(x1 - x0, 1, z1 - z0), CF(0, avg - 0.5, (z0 + z1) / 2), O.DARKER, "Wood", { Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false })
 	local m = P.model(parent, "BoardwalkDeck")
-	for i = 0, 7 do
-		local pz = 296 + (i + 0.5) * 10 / 8
-		local x = -80
-		while x < 79.5 do
-			local x1 = math.min(80, x + O.Range(18, 34))
-			O.Part(m, "Plank", V(x1 - x - 0.12, 0.3, 10 / 8 - 0.12), CF((x + x1) / 2, y - 0.15 - O.Range(0, 0.04), pz), O.Jitter(O.Pick(O.WOOD), 0.07), "WoodPlanks")
-			x = x1
+	local rows = 6
+	local rw = (z1 - z0) / rows
+	for i = 0, rows - 1 do
+		local pz = z0 + (i + 0.5) * rw
+		local x = x0 + O.Range(0, 6) * (i % 2)
+		if x > x0 then
+			local yA, yB = hAt(x0), hAt(x)
+			O.Stick(m, "Plank", V(x0, yA - 0.15, pz), V(x - 0.1, yB - 0.15, pz), rw - 0.12, 0.3, O.Jitter(O.Pick(O.WOOD), 0.07), "WoodPlanks")
+		end
+		while x < x1 - 0.5 do
+			local xb = math.min(x1, x + O.Range(14, 22))
+			if x1 - xb < 4 then
+				xb = x1
+			end
+			O.Stick(m, "Plank", V(x, hAt(x) - 0.15 - O.Range(0, 0.04), pz), V(xb - 0.1, hAt(xb) - 0.15, pz), rw - 0.12, 0.3, O.Jitter(O.Pick(O.WOOD), 0.07), "WoodPlanks")
+			x = xb
 		end
 	end
-	for _, z in { 295.6, 306.4 } do
-		O.Part(m, "Stringer", V(160, 1.1, 0.8), CF(0, y - 0.8, z), DARK, "Wood")
+	-- edge beams and posts on the seaward side
+	local x = x0
+	while x < x1 - 0.5 do
+		local xb = math.min(x1, x + 21)
+		for _, z in { z0 - 0.35, z1 + 0.35 } do
+			O.Stick(m, "EdgeBeam", V(x, hAt(x) - 0.45, z), V(xb, hAt(xb) - 0.45, z), 0.6, 0.75, DARK, "Wood", { CanCollide = false })
+		end
+		x = xb
 	end
-	for x = -76, 76, 16 do
-		local ground = (H.GetHeight(x, 307))
-		P.pillar(m, x, 307, math.min(ground - 2, -10), y + 0.4, 1.3, { Name = "Piling", Mat = "Wood", Color = O.Jitter(rgb(100, 74, 52), 0.08) })
+	for px = x0 + 4, x1 - 4, 14 do
+		if math.abs(math.abs(px) - 70) > 8 and math.abs(px) > 8 then
+			local gz = z1 + 0.35
+			local ground = (H.GetHeight(px, gz))
+			P.pillar(m, px, gz, ground - 1, hAt(px) + 0.25, 0.9, { Name = "Post", Mat = "Wood", Color = O.Jitter(rgb(100, 74, 52), 0.08), CanCollide = false })
+		end
 	end
-	return bw
+	return bw, hAt
 end
 
 -- Welcome arch over the road to the piers --------------------------------------------------------------------
@@ -1179,28 +1385,6 @@ local function welcomeArch(parent: any, x: number, y: number, z: number)
 	end
 	O.Bunting(m, V(-9.8, 13.0, -0.7), V(9.8, 13.0, -0.7), { rgb(206, 50, 48), rgb(250, 210, 70), rgb(40, 110, 170), rgb(250, 246, 236) }, 10, 1.4)
 	P.transform(m, CF(x, y, z))
-	return m
-end
-
--- Signpost pointing to every shop ----------------------------------------------------------------------------
-local function signpost(parent: any, x: number, y: number, z: number, shops: { any })
-	local m = P.model(parent, "Signpost")
-	O.Part(m, "SignpostPole", V(0.8, 10, 0.8), CF(x, y + 4.5, z), rgb(104, 72, 48), "Wood")
-	O.Part(m, "SignpostCap", V(1.1, 0.4, 1.1), CF(x, y + 9.6, z), DARK, "Wood")
-	O.Ball(m, "SignpostKnob", V(x, y + 10.0, z), 0.7, O.BRASS, "Metal")
-	for i, shop in shops do
-		local fx, fz = shop.FrontX or shop.X, shop.FrontZ or shop.Z
-		local dx, dz = fx - x, fz - z
-		local yaw = math.atan2(-dz, dx) -- board's +X points at the shop
-		local by = y + 8.6 - i * 1.25
-		local frame = CF(x, by, z) * Angles(0, yaw, 0)
-		local board = O.Part(m, "Arrow", V(5.2, 0.95, 0.25), frame * CF(2.9, 0, 0), O.Jitter(rgb(150, 108, 66), 0.06), "WoodPlanks", { CanCollide = false })
-		O.Triangle(m, "ArrowTip", (frame * CF(5.5, 0, 0)).Position, frame:VectorToWorldSpace(V(0.8, 0, 0)), frame:VectorToWorldSpace(V(0, 0.475, 0)), 0.25, board.Color, "WoodPlanks", { CanCollide = false })
-		O.Triangle(m, "ArrowTip", (frame * CF(5.5, 0, 0)).Position, frame:VectorToWorldSpace(V(0.8, 0, 0)), frame:VectorToWorldSpace(V(0, -0.475, 0)), 0.25, board.Color, "WoodPlanks", { CanCollide = false })
-		local title = string.gsub(shop.Title, "^THE ", "")
-		P.surfaceText(board, "Front", title, { Name = "ArrowText", Color = rgb(60, 32, 18), StrokeTransparency = 1, PixelsPerStud = 30, Padding = 0.04 })
-		P.surfaceText(board, "Back", title, { Name = "ArrowText", Color = rgb(60, 32, 18), StrokeTransparency = 1, PixelsPerStud = 30, Padding = 0.04 })
-	end
 	return m
 end
 
@@ -1255,7 +1439,17 @@ function Town.Build(parent: any, H: any, World: any)
 	end
 	O.Ball(town, "CompassHub", V(sp.X, sy + 0.4, sp.Z), 0.8, O.BRASS, "Metal", { CanCollide = false })
 	keep(sp.X, sp.Z, 10)
-	signpost(town, sp.X + 8.5, ground(sp.X + 8.5, sp.Z - 4), sp.Z - 4, World.Shops)
+
+	-- Cottages lining the main street ------------------------------------------------------------------
+	local cottages = {
+		{ Name = "Cottage", X = -30, Z = 210, Yaw = PI / 2, Roof = "Thatch", Walls = O.HONEY, Shutter = rgb(60, 120, 70), Props = "Washing" },
+		{ Name = "Cottage", X = 31, Z = 204, Yaw = -PI / 2, Roof = "Shingle", RoofColors = O.RED_ROOF, Walls = O.DRIFT, Shutter = rgb(44, 110, 150), DoorX = 2.2, Chimney = true },
+		{ Name = "Cottage", X = -30, Z = 281, Yaw = PI / 2, Roof = "Shingle", RoofColors = O.TEAL_ROOF, Walls = O.WOOD, Shutter = rgb(170, 70, 50), DoorX = 2.2, Props = "Fisher" },
+	}
+	for _, c in cottages do
+		cottage(town, c, H)
+		keep(c.X, c.Z, 13)
+	end
 
 	-- Welcome arch on the road to the piers
 	welcomeArch(town, 0, ground(0, 292), 292)
@@ -1265,7 +1459,16 @@ function Town.Build(parent: any, H: any, World: any)
 	for pi, pd in World.Piers do
 		pier(town, pi, pd, H)
 	end
-	boardwalk(town, World.Piers[1].Height, H)
+	boardwalk(town, H)
+	-- keep the harbour front open: the boardwalk, the view from the piers to the arch, the pier heads
+	for x = -84, 84, 12 do
+		keep(x, 301, 9)
+	end
+	keep(0, 318, 16)
+	for _, pd in World.Piers do
+		keep(pd.X, 312, 9)
+		keep(pd.X, 326, 9)
+	end
 
 	-- Lighthouse on the northern hill
 	local lh = World.Lighthouse

@@ -161,10 +161,12 @@ function O.PlankWall(parent: any, cf: any, length: number, height: number, opts:
 	local half = length / 2
 	local depth = o.Depth or 0.6
 	local back = o.Back or O.DARKER
-	local maxLen = o.MaxLen or 17
-	-- solid backing in bands between the hole edges (collision, no see-through gaps)
+	local maxLen = o.MaxLen or 28
+	-- solid backing in bands between the hole edges (collision, no see-through gaps).
+	-- SolidBack: one backing part for the whole wall (doors and windows are only on the outside)
+	local backHoles = if o.SolidBack then {} else holes
 	local ys = { 0, height }
-	for _, h in holes do
+	for _, h in backHoles do
 		table.insert(ys, math.clamp(h[3], 0, height))
 		table.insert(ys, math.clamp(h[4], 0, height))
 	end
@@ -172,7 +174,7 @@ function O.PlankWall(parent: any, cf: any, length: number, height: number, opts:
 	for i = 1, #ys - 1 do
 		local y0, y1 = ys[i], ys[i + 1]
 		if y1 - y0 > 0.05 then
-			for _, s in freeSegments(half, holes, y0, y1) do
+			for _, s in freeSegments(half, backHoles, y0, y1) do
 				if s[2] - s[1] > 0.05 then
 					part(parent, "Wall", V(s[2] - s[1], y1 - y0, depth), cf * CF((s[1] + s[2]) / 2, (y0 + y1) / 2, -depth / 2), back, "WoodPlanks")
 				end
@@ -180,7 +182,7 @@ function O.PlankWall(parent: any, cf: any, length: number, height: number, opts:
 		end
 	end
 	-- overlapping planks, bottom edge kicked out a little
-	local rows = math.max(1, math.floor(height / (o.PlankH or 1.05) + 0.5))
+	local rows = math.max(1, math.floor(height / (o.PlankH or 1.2) + 0.5))
 	local rh = height / rows
 	for r = 0, rows - 1 do
 		local y0, y1 = r * rh, (r + 1) * rh
@@ -213,7 +215,7 @@ function O.GableWall(parent: any, cf: any, base: number, rise: number, opts: { [
 	for _, side in { -1, 1 } do
 		triangle(parent, "Gable", (cf * CF(0, 0, -depth / 2)).Position, cf:VectorToWorldSpace(V(side * half, 0, 0)), cf:VectorToWorldSpace(V(0, rise, 0)), depth, back, "WoodPlanks")
 	end
-	local rows = math.max(1, math.floor(rise / (o.PlankH or 1.05) + 0.5))
+	local rows = math.max(1, math.floor(rise / (o.PlankH or 1.2) + 0.5))
 	local rh = rise / rows
 	for r = 0, rows - 1 do
 		local yc = (r + 0.5) * rh
@@ -254,8 +256,7 @@ end
 
 -- Window with frame, cross bars, a warm glass pane and two open shutters. cf: centre of the opening on the outer face.
 function O.Window(parent: any, cf: any, w: number, h: number, shutter: any?)
-	part(parent, "WindowGlass", V(w, h, 0.1), cf * CF(0, 0, -0.25), rgb(255, 214, 150), "Glass", { Transparency = 0.35 })
-	part(parent, "WindowBack", V(w, h, 0.1), cf * CF(0, 0, -0.55), rgb(40, 28, 20), "Wood")
+	part(parent, "WindowGlass", V(w, h, 0.1), cf * CF(0, 0, -0.25), rgb(255, 214, 150), "Glass", { Transparency = 0.3 })
 	for _, x in { -w / 2 - 0.2, w / 2 + 0.2 } do
 		part(parent, "WindowFrame", V(0.4, h + 0.4, 0.45), cf * CF(x, 0, 0.12), O.DARK, "Wood")
 	end
@@ -307,29 +308,49 @@ function O.Roof(parent: any, cf: any, W: number, D: number, opts: { [string]: an
 		end
 		part(parent, "Roof", V(slopeLen, thick, len), frame(slopeLen / 2, thick / 2), if thatch then O.Shade(colors[2], 0.62) else rgb(86, 62, 44), if thatch then "Grass" else "WoodPlanks")
 		-- rows of shingles / thatch bundles from the eave up to the ridge
-		local rows = math.ceil((slopeLen - 0.3) / step)
-		for k = 0, rows - 1 do
-			local u = math.max(rowW / 2, slopeLen - rowW / 2 - k * step)
-			local lift = thick + rowT / 2 - 0.05 + rowW / 2 * math.sin(tilt) * 0.6
-			local segs = 2
-			local zs = { -len / 2 - 0.15 }
-			for i = 1, segs - 1 do
-				table.insert(zs, -len / 2 + len * (i + O.Range(-0.3, 0.3)) / segs)
+		if thatch then
+			-- thatch: rounded straw bundles (cylinders) lying along the roof, overlapping a little
+			local d = 1.7
+			local stepT = 1.32
+			local rows = math.ceil((slopeLen - 0.5) / stepT)
+			for k = 0, rows - 1 do
+				local u = math.max(d * 0.42, slopeLen - d * 0.55 - k * stepT)
+				local segs = if len > 20 then 2 else 1
+				local zs = { -len / 2 - 0.2 }
+				if segs == 2 then
+					table.insert(zs, -len / 2 + len * (1 + O.Range(-0.3, 0.3)) / 2)
+				end
+				table.insert(zs, len / 2 + 0.2)
+				for i = 1, segs do
+					local z0, z1 = zs[i], zs[i + 1]
+					local gap = if i < segs then 0.05 else 0
+					local wob = Angles(O.Range(-0.015, 0.015), O.Range(-0.02, 0.02), 0)
+					cylZ(parent, "Thatch", frame(u + O.Range(-0.12, 0.12), thick + d * 0.18 + O.Range(-0.05, 0.05), (z0 + z1 - gap) / 2) * wob, z1 - z0 - gap, d * O.Range(0.95, 1.05), O.Jitter(O.Pick(colors), 0.07), "Grass", { CanCollide = false })
+				end
 			end
-			table.insert(zs, len / 2 + 0.15)
-			for i = 1, segs do
-				local z0, z1 = zs[i], zs[i + 1]
-				local gap = if i < segs then 0.12 else 0
-				local wob = if thatch then Angles(O.Range(-0.02, 0.02), O.Range(-0.025, 0.025), 0) else CF()
-				local du = if thatch then O.Range(-0.18, 0.18) else 0
-				part(parent, if thatch then "Thatch" else "Shingles", V(rowW, rowT, z1 - z0 - gap), frame(u + du, lift, (z0 + z1 - gap) / 2) * Angles(0, 0, tilt) * wob, O.Jitter(O.Pick(colors), if thatch then 0.07 else 0.08), if thatch then "Grass" else "WoodPlanks", { CanCollide = false })
+		else
+			local rows = math.ceil((slopeLen - 0.3) / step)
+			for k = 0, rows - 1 do
+				local u = math.max(rowW / 2, slopeLen - rowW / 2 - k * step)
+				local lift = thick + rowT / 2 - 0.05 + rowW / 2 * math.sin(tilt) * 0.6
+				local segs = 2
+				local zs = { -len / 2 - 0.15 }
+				for i = 1, segs - 1 do
+					table.insert(zs, -len / 2 + len * (i + O.Range(-0.3, 0.3)) / segs)
+				end
+				table.insert(zs, len / 2 + 0.15)
+				for i = 1, segs do
+					local z0, z1 = zs[i], zs[i + 1]
+					local gap = if i < segs then 0.12 else 0
+					part(parent, "Shingles", V(rowW, rowT, z1 - z0 - gap), frame(u, lift, (z0 + z1 - gap) / 2) * Angles(0, 0, tilt), O.Jitter(O.Pick(colors), 0.08), "WoodPlanks", { CanCollide = false })
+				end
 			end
 		end
 		if thatch then
 			-- thick rounded eave and gable edges
-			cylZ(parent, "ThatchEave", frame(slopeLen - 0.3, thick + 0.25), len + 0.4, 1.5, O.Shade(colors[2], 0.95), "Grass", { CanCollide = false })
+			cylZ(parent, "ThatchEave", frame(slopeLen - 0.35, thick + 0.3), len + 0.5, 1.95, O.Shade(colors[2], 0.95), "Grass", { CanCollide = false })
 			for _, z in { zBack - 0.1, zFront + 0.1 } do
-				rod(parent, "ThatchEdge", (frame(0.2, thick + 0.35, z - zc)).Position, (frame(slopeLen - 0.4, thick + 0.35, z - zc)).Position, 1.25, O.Shade(colors[2], 0.9), "Grass", { CanCollide = false })
+				rod(parent, "ThatchEdge", (frame(0.2, thick + 0.4, z - zc)).Position, (frame(slopeLen - 0.4, thick + 0.4, z - zc)).Position, 1.45, O.Shade(colors[2], 0.9), "Grass", { CanCollide = false })
 			end
 		else
 			part(parent, "Fascia", V(0.35, 0.9, len + 0.3), frame(slopeLen + 0.05, thick / 2), edge, "Wood", { CanCollide = false })
@@ -362,7 +383,11 @@ function O.LeanTo(parent: any, cf: any, w: number, d: number, drop: number, colo
 	local rows = math.ceil(slope / step)
 	for k = 0, rows - 1 do
 		local u = math.max(rowW / 2, slope - rowW / 2 - k * step)
-		part(parent, if thatch then "Thatch" else "Shingles", V(w + 0.3, if thatch then 0.6 else 0.3, rowW), frame * CF(0, 0.35, -u) * Angles(math.rad(4), 0, 0), O.Jitter(O.Pick(cols), 0.08), if thatch then "Grass" else "WoodPlanks", { CanCollide = false })
+		if thatch then
+			part(parent, "Thatch", V(w + 0.3, 1.5, 1.5), frame * CF(0, 0.45, -u), O.Jitter(O.Pick(cols), 0.08), "Grass", { CanCollide = false, Shape = "Cylinder" })
+		else
+			part(parent, "Shingles", V(w + 0.3, 0.3, rowW), frame * CF(0, 0.35, -u) * Angles(math.rad(4), 0, 0), O.Jitter(O.Pick(cols), 0.08), "WoodPlanks", { CanCollide = false })
+		end
 	end
 end
 
@@ -412,7 +437,9 @@ function O.Stilts(parent: any, x0: number, x1: number, z0: number, z1: number, f
 		end
 		for i = 0, nx - 1 do
 			local xa, xb = x0 + (x1 - x0) * i / nx, x0 + (x1 - x0) * (i + 1) / nx
-			brace(xa, z0 - 0.1, xb, z0 - 0.1, i % 2 == 0)
+			if not o.NoBackBraces then
+				brace(xa, z0 - 0.1, xb, z0 - 0.1, i % 2 == 0)
+			end
 			brace(xa, z1 + 0.1, xb, z1 + 0.1, i % 2 == 1)
 		end
 		for j = 0, nz - 1 do
@@ -506,19 +533,16 @@ end
 -- Props ----------------------------------------------------------------------------------------------
 
 -- Hanging lantern. cf: the hook point (the lantern hangs below it). Returns the glowing part.
+-- Six parts: chain, cap, glass, two crossed cage plates (they read as four corner bars), base.
 function O.Lantern(parent: any, cf: any, opts: { [string]: any }?)
 	local o = opts or {}
 	local s = o.Scale or 1
 	local nc = { CanCollide = false, CanQuery = false }
-	part(parent, "LanternChain", V(0.1 * s, 0.75 * s, 0.1 * s), cf * CF(0, -0.37 * s, 0), O.IRON, "Metal", nc)
-	cyl(parent, "LanternCap", cf * CF(0, -0.62 * s, 0), 0.34 * s, 0.82 * s, O.IRON, "Metal", nc)
-	local glow = part(parent, "LanternGlow", V(0.56 * s, 0.75 * s, 0.56 * s), cf * CF(0, -1.15 * s, 0), o.Color or O.GLOW, "Neon", { CanCollide = false, CanQuery = false, Transparency = 0.1 })
-	for _, x in { -1, 1 } do
-		for _, z in { -1, 1 } do
-			part(parent, "LanternBar", V(0.1 * s, 0.85 * s, 0.1 * s), cf * CF(x * 0.31 * s, -1.15 * s, z * 0.31 * s), O.IRON, "Metal", nc)
-		end
-	end
-	cyl(parent, "LanternBase", cf * CF(0, -1.65 * s, 0), 0.22 * s, 0.8 * s, O.IRON, "Metal", nc)
+	part(parent, "LanternChain", V(0.1 * s, 0.6 * s, 0.1 * s), cf * CF(0, -0.3 * s, 0), O.IRON, "Metal", nc)
+	cyl(parent, "LanternCap", cf * CF(0, -0.7 * s, 0), 0.36 * s, 0.84 * s, O.IRON, "Metal", nc)
+	local glow = cyl(parent, "LanternGlow", cf * CF(0, -1.2 * s, 0), 0.72 * s, 0.6 * s, o.Color or O.GLOW, "Neon", { CanCollide = false, CanQuery = false, Transparency = 0.05 })
+	part(parent, "LanternBar", V(0.7 * s, 0.76 * s, 0.08 * s), cf * CF(0, -1.2 * s, 0), O.IRON, "Metal", nc)
+	cyl(parent, "LanternBase", cf * CF(0, -1.65 * s, 0), 0.2 * s, 0.8 * s, O.IRON, "Metal", nc)
 	if o.Light ~= false then
 		P.pointLight(glow, O.LIGHT, o.Range or 16, o.Brightness or 1.3, false)
 	end
@@ -661,18 +685,55 @@ function O.Chest(parent: any, cf: any, opts: { [string]: any }?)
 	end
 end
 
+-- Shop emblems (carved / painted props drawn above signs). cf: centre of the emblem, facing +Z.
+-- kind = "Anchor" | "Wheel" | "Swords" | "Coin" | "Barrel" | "Mug"; k = scale (about 2.4 studs tall at 1)
+function O.Emblem(parent: any, cf: any, kind: string, k: number?)
+	local s = k or 1
+	local nc = { CanCollide = false, CanQuery = false }
+	if kind == "Anchor" then
+		O.Anchor(parent, cf * CF(0, 1.25 * s, 0), 0.55 * s)
+	elseif kind == "Wheel" then
+		local wood = rgb(128, 84, 48)
+		cylZ(parent, "EmblemWheel", cf, 0.22 * s, 2.0 * s, wood, "Wood", nc)
+		cylZ(parent, "EmblemWheel", cf * CF(0, 0, 0.04 * s), 0.22 * s, 1.5 * s, O.Shade(wood, 0.62), "Wood", nc)
+		for i = 0, 3 do
+			part(parent, "EmblemSpoke", V(2.9 * s, 0.2 * s, 0.2 * s), cf * CF(0, 0, 0.16 * s) * Angles(0, 0, i * math.pi / 4), O.Shade(wood, 1.12), "Wood", nc)
+		end
+		cylZ(parent, "EmblemHub", cf * CF(0, 0, 0.24 * s), 0.25 * s, 0.6 * s, O.BRASS, "Metal", nc)
+	elseif kind == "Swords" then
+		for _, side in { -1, 1 } do
+			O.Cutlass(parent, cf * CF(side * 0.6 * s, -0.7 * s, 0) * Angles(0, 0, side * math.rad(35)), 0.95 * s)
+		end
+	elseif kind == "Coin" then
+		cylZ(parent, "EmblemCoin", cf, 0.24 * s, 2.0 * s, O.GOLD, "Metal", nc)
+		cylZ(parent, "EmblemCoin", cf * CF(0, 0, 0.06 * s), 0.24 * s, 1.55 * s, O.Shade(O.GOLD, 0.82), "Metal", nc)
+		ball(parent, "EmblemSkull", (cf * CF(0, 0.1 * s, 0.2 * s)).Position, 0.7 * s, O.GOLD, "Metal", nc)
+		part(parent, "EmblemJaw", V(0.42 * s, 0.26 * s, 0.2 * s), cf * CF(0, -0.32 * s, 0.22 * s), O.GOLD, "Metal", nc)
+	elseif kind == "Barrel" then
+		local c = rgb(150, 100, 58)
+		part(parent, "EmblemBarrel", V(2.0 * s, 1.4 * s, 1.4 * s), cf, c, "WoodPlanks", merge({ Shape = "Cylinder" }, nc))
+		for _, x in { -0.62, 0.62 } do
+			part(parent, "EmblemHoop", V(0.16 * s, 1.48 * s, 1.48 * s), cf * CF(x * s, 0, 0), O.IRON, "Metal", merge({ Shape = "Cylinder" }, nc))
+		end
+	elseif kind == "Mug" then
+		cyl(parent, "EmblemMug", cf, 1.5 * s, 1.1 * s, rgb(150, 104, 60), "Wood", nc)
+		cyl(parent, "EmblemFoam", cf * CF(0, 0.82 * s, 0), 0.3 * s, 1.15 * s, rgb(250, 244, 226), "SmoothPlastic", nc)
+		part(parent, "EmblemHandle", V(0.22 * s, 0.9 * s, 0.3 * s), cf * CF(0.72 * s, 0, 0), rgb(110, 76, 46), "Wood", nc)
+	end
+end
+
 -- Carved wooden sign with Rye lettering. cf: centre of the board, readable from +Z (and -Z if TwoSided).
--- opts: Color, TextColor, TwoSided, Hang (height of chains above the board), Ends (rounded scroll ends)
+-- A framed board with rolled scroll ends. opts: Color, TextColor, TwoSided, Hang (height of chains
+-- above the board), Emblem (kind for O.Emblem above the board), EmblemScale, PixelsPerStud
 function O.Sign(parent: any, cf: any, w: number, h: number, text: string, opts: { [string]: any }?)
 	local o = opts or {}
 	local wood = o.Color or rgb(96, 62, 38)
 	local board = part(parent, "SignBoard", V(w, h, 0.35), cf, wood, "WoodPlanks", { CanCollide = false })
-	part(parent, "SignBack", V(w + 0.45, h + 0.45, 0.22), cf, O.Shade(wood, 0.6), "Wood", { CanCollide = false })
-	if o.Crest ~= false then
-		cylZ(parent, "SignCrest", cf * CF(0, h / 2 + 0.1, -0.02), 0.24, math.min(w * 0.3, h * 0.9), O.Shade(wood, 0.6), "Wood", { CanCollide = false })
-	end
+	part(parent, "SignBack", V(w + 0.4, h + 0.4, 0.22), cf, O.Shade(wood, 0.55), "Wood", { CanCollide = false })
+	-- rolled ends, like a scroll
 	for _, side in { -1, 1 } do
-		ball(parent, "SignNail", (cf * CF(side * (w / 2 - 0.35), h / 2 - 0.3, 0.17)).Position, 0.22, O.BRASS, "Metal", { CanCollide = false })
+		cyl(parent, "SignScroll", cf * CF(side * (w / 2 + 0.25), 0, 0), h + 0.5, math.min(0.9, h * 0.36), O.Shade(wood, 0.8), "Wood", { CanCollide = false })
+		ball(parent, "SignNail", (cf * CF(side * (w / 2 - 0.4), 0, 0.17)).Position, 0.24, O.BRASS, "Metal", { CanCollide = false })
 	end
 	local tc = o.TextColor or rgb(255, 216, 128)
 	P.surfaceText(board, "Back", text, { Name = "SignText", Color = tc, PixelsPerStud = o.PixelsPerStud or 32, StrokeTransparency = 0.25 })
@@ -684,7 +745,40 @@ function O.Sign(parent: any, cf: any, w: number, h: number, text: string, opts: 
 			part(parent, "SignChain", V(0.1, o.Hang, 0.1), cf * CF(side * w * 0.36, h / 2 + o.Hang / 2, 0), O.IRON, "Metal", { CanCollide = false })
 		end
 	end
+	if o.Emblem then
+		local es = o.EmblemScale or 1
+		O.Emblem(parent, cf * CF(0, h / 2 + 1.25 * es, 0.15), o.Emblem, es)
+	end
 	return board
+end
+
+-- A carved sign hanging from a gallows post (cf: foot of the post on the ground; the arm reaches
+-- along +X and the board faces +Z). Readable from both sides.
+function O.PostSign(parent: any, cf: any, text: string, opts: { [string]: any }?)
+	local o = opts or {}
+	local h = o.Height or 7.5
+	local arm = o.Arm or 3.6
+	local wood = o.Color or rgb(110, 72, 44)
+	part(parent, "SignPost", V(0.7, h + 1, 0.7), cf * CF(0, (h - 1) / 2, 0), O.Jitter(O.DARK, 0.05), "Wood")
+	part(parent, "SignPostCap", V(0.95, 0.3, 0.95), cf * CF(0, h - 0.35, 0), O.DARKER, "Wood", { CanCollide = false })
+	part(parent, "SignArm", V(arm + 0.4, 0.45, 0.45), cf * CF(arm / 2, h - 1.0, 0), O.DARK, "Wood", { CanCollide = false })
+	stick(parent, "SignBrace", (cf * CF(0.2, h - 2.6, 0)).Position, (cf * CF(1.5, h - 1.1, 0)).Position, 0.3, 0.3, O.DARK, "Wood", { CanCollide = false })
+	local bw, bh = o.Width or 3.2, o.BoardH or 1.5
+	local hang = 0.6
+	local board = cf * CF(arm / 2 + 0.3, h - 1.2 - hang - bh / 2, 0)
+	for _, side in { -1, 1 } do
+		part(parent, "SignChain", V(0.08, hang + 0.1, 0.08), board * CF(side * bw * 0.36, bh / 2 + hang / 2, 0), O.IRON, "Metal", { CanCollide = false, CanQuery = false })
+	end
+	local b = part(parent, "SignBoard", V(bw, bh, 0.25), board, wood, "WoodPlanks", { CanCollide = false })
+	part(parent, "SignBack", V(bw + 0.3, bh + 0.3, 0.16), board, O.Shade(wood, 0.55), "Wood", { CanCollide = false })
+	local tc = o.TextColor or rgb(255, 222, 140)
+	for _, face in { "Front", "Back" } do
+		P.surfaceText(b, face, text, { Name = "SignText", Color = tc, PixelsPerStud = 40, StrokeTransparency = 0.3, Padding = 0.06 })
+	end
+	if o.Lantern then
+		O.Lantern(parent, cf * CF(arm - 0.2, h - 1.0, 0), { Range = 12, Brightness = 1, Scale = 0.8, Light = o.Light })
+	end
+	return b
 end
 
 -- Simple table (cf: floor centre). Top w x d at height 2.6.
@@ -703,9 +797,8 @@ end
 -- Stool (cf: floor centre)
 function O.Stool(parent: any, cf: any)
 	cyl(parent, "StoolSeat", cf * CF(0, 1.7, 0), 0.25, 1.3, O.Jitter(rgb(130, 92, 58), 0.08), "Wood")
-	for i = 0, 2 do
-		local a = i * math.pi * 2 / 3
-		stick(parent, "StoolLeg", (cf * CF(math.cos(a) * 0.35, 1.6, math.sin(a) * 0.35)).Position, (cf * CF(math.cos(a) * 0.55, 0, math.sin(a) * 0.55)).Position, 0.18, 0.18, O.DARK, "Wood", { CanCollide = false })
+	for k = 0, 1 do
+		part(parent, "StoolLeg", V(1.1, 1.6, 0.16), cf * CF(0, 0.8, 0) * Angles(0, k * math.pi / 2, 0), O.DARK, "Wood", { CanCollide = false })
 	end
 end
 
@@ -928,11 +1021,73 @@ function O.Fish(parent: any, cf: any, color: any?)
 	triangle(parent, "FishTail", (cf * CF(-0.0, -1.8, 0)).Position, cf:VectorToWorldSpace(V(0, 0, -0.4)), cf:VectorToWorldSpace(V(0, -0.5, 0)), 0.08, O.Shade(c, 0.85), "SmoothPlastic", nc)
 end
 
+-- Wooden A-frame hoist (cf: ground centre between the legs, legs spread along X). A rope with a
+-- pulley block hangs from the top beam and lifts a bundle of planks.
+function O.Hoist(parent: any, cf: any, h: number?, spread: number?)
+	local height = h or 13
+	local sx = spread or 5
+	local wood = rgb(116, 84, 56)
+	for _, side in { -1, 1 } do
+		for _, z in { -1.6, 1.6 } do
+			stick(parent, "HoistLeg", (cf * CF(side * sx, 0, z)).Position, (cf * CF(side * 1.2, height, z * 0.35)).Position, 0.7, 0.7, O.Jitter(wood, 0.06), "Wood")
+		end
+		part(parent, "HoistTie", V(0.4, 0.4, 3.4), cf * CF(side * sx * 0.55, height * 0.45, 0), O.DARK, "Wood", { CanCollide = false })
+	end
+	part(parent, "HoistBeam", V(3.6, 0.8, 1.6), cf * CF(0, height + 0.1, 0), O.DARK, "Wood")
+	part(parent, "HoistArm", V(0.6, 0.6, 4.2), cf * CF(0, height + 0.5, 1.6), O.DARK, "Wood", { CanCollide = false })
+	cylZ(parent, "HoistPulley", cf * CF(0, height - 0.2, 3.4), 0.35, 0.9, O.IRON, "Metal", { CanCollide = false })
+	local bottom = height * 0.58
+	part(parent, "HoistRope", V(0.14, height - bottom - 0.4, 0.14), cf * CF(0, (height + bottom) / 2 - 0.2, 3.4), O.ROPE, "Fabric", { CanCollide = false, CanQuery = false })
+	for i = 0, 2 do
+		part(parent, "HoistLoad", V(0.9, 0.4, 5), cf * CF(-0.95 + i * 0.95, bottom - 0.3, 3.4) * Angles(0, 0, math.rad(O.Range(-3, 3))), O.Jitter(rgb(196, 152, 98), 0.08), "WoodPlanks", { CanCollide = false })
+	end
+	part(parent, "HoistSling", V(3.1, 0.12, 0.12), cf * CF(0, bottom + 0.0, 3.4), O.ROPE, "Fabric", { CanCollide = false, CanQuery = false })
+end
+
+-- Straw training dummy on a post (cf: foot of the post, faces +Z)
+function O.Dummy(parent: any, cf: any)
+	local straw = O.Jitter(rgb(206, 170, 96), 0.06)
+	part(parent, "DummyPost", V(0.45, 5.4, 0.45), cf * CF(0, 2.5, 0), O.DARK, "Wood")
+	part(parent, "DummyArms", V(3.6, 0.35, 0.35), cf * CF(0, 4.0, 0), O.DARK, "Wood", { CanCollide = false })
+	cyl(parent, "DummyBody", cf * CF(0, 3.5, 0), 2.3, 1.5, straw, "Fabric")
+	ball(parent, "DummyHead", (cf * CF(0, 5.2, 0)).Position, 1.25, straw, "Fabric", { CanCollide = false })
+	cyl(parent, "DummyBelt", cf * CF(0, 3.0, 0), 0.3, 1.58, O.ROPE, "Fabric", { CanCollide = false })
+	part(parent, "DummyBandana", V(1.3, 0.35, 1.3), cf * CF(0, 5.55, 0), rgb(170, 40, 40), "Fabric", { CanCollide = false })
+end
+
+-- Round shooting target on a stand (cf: ground centre, the face looks to +Z)
+function O.Target(parent: any, cf: any)
+	for _, side in { -1, 1 } do
+		stick(parent, "TargetLeg", (cf * CF(side * 1.1, 0, -0.6)).Position, (cf * CF(side * 0.6, 4.6, 0)).Position, 0.3, 0.3, O.DARK, "Wood", { CanCollide = false })
+	end
+	local face = cf * CF(0, 3.6, 0.15) * Angles(math.rad(-10), 0, 0)
+	cylZ(parent, "Target", face, 0.35, 3.2, rgb(232, 220, 190), "Fabric")
+	cylZ(parent, "TargetRing", face * CF(0, 0, 0.05), 0.35, 2.2, rgb(180, 40, 36), "Fabric", { CanCollide = false })
+	cylZ(parent, "TargetRing", face * CF(0, 0, 0.1), 0.35, 1.3, rgb(232, 220, 190), "Fabric", { CanCollide = false })
+	cylZ(parent, "Bullseye", face * CF(0, 0, 0.15), 0.35, 0.55, rgb(180, 40, 36), "Fabric", { CanCollide = false })
+end
+
+-- Two-wheeled hand cart loaded with goods (cf: ground centre, handles towards -X)
+function O.Cart(parent: any, cf: any, goods: { any }?)
+	local wood = rgb(140, 100, 62)
+	part(parent, "CartBed", V(4.4, 0.35, 2.8), cf * CF(0.3, 1.75, 0), O.Jitter(wood, 0.05), "WoodPlanks")
+	for _, z in { -1.35, 1.35 } do
+		part(parent, "CartSide", V(4.4, 0.9, 0.2), cf * CF(0.3, 2.35, z), O.Shade(wood, 0.85), "WoodPlanks")
+		cylZ(parent, "CartWheel", cf * CF(0.6, 1.25, z * 1.12), 0.3, 2.5, O.DARK, "Wood")
+		cylZ(parent, "CartHub", cf * CF(0.6, 1.25, z * 1.22), 0.3, 0.6, O.IRON, "Metal", { CanCollide = false })
+		stick(parent, "CartHandle", (cf * CF(-1.6, 1.85, z * 0.9)).Position, (cf * CF(-3.8, 1.1, z * 1.0)).Position, 0.25, 0.25, O.DARK, "Wood", { CanCollide = false })
+	end
+	part(parent, "CartFoot", V(0.3, 1.5, 0.3), cf * CF(-1.4, 0.95, 0), O.DARK, "Wood", { CanCollide = false })
+	local cols = goods or { rgb(196, 170, 120), O.BURLAP }
+	O.Sack(parent, cf * CF(1.2, 1.9, 0.6) * Angles(0, 0, math.rad(-12)), cols[1])
+	O.Sack(parent, cf * CF(-0.3, 1.9, -0.5) * Angles(math.rad(10), 0, 0), cols[2])
+	O.Crate(parent, cf * CF(1.4, 1.92, -0.6) * Angles(0, 0.3, 0), 1.3)
+end
+
 -- Bollard for mooring lines (cf: deck surface)
 function O.Bollard(parent: any, cf: any)
 	cyl(parent, "Bollard", cf * CF(0, 0.75, 0), 1.5, 1.1, O.IRON, "Metal")
 	cyl(parent, "BollardCap", cf * CF(0, 1.6, 0), 0.3, 1.45, O.IRON, "Metal")
-	cyl(parent, "MooringRope", cf * CF(0, 0.9, 0), 0.4, 1.25, O.ROPE, "Fabric", { CanCollide = false })
 end
 
 -- Wooden torch with fire (cf: base on the ground)
