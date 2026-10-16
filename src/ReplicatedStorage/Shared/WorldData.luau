@@ -9,7 +9,7 @@ WorldData.WaterLevel = 0
 WorldData.FloorLevel = -56 -- ocean floor
 WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on X and Z
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
-WorldData.TerrainVersion = 3 -- bump when the terrain recipe changes
+WorldData.TerrainVersion = 4 -- bump when the terrain recipe changes
 
 export type Shop = {
 	Id: string,
@@ -42,7 +42,7 @@ export type Island = {
 }
 
 WorldData.Islands = {
-	{ Name = "Kingshaven", X = 0, Z = 0, Radius = 430, Height = 16, Kind = "Main", Seed = 11, Wobble = 0.05, Steep = 1.2, RockMaterial = "Rock", Palms = 70, Rocks = 18, Skeletons = 0, Blurb = "Pirate capital. Shops, ships and safe harbour." },
+	{ Name = "Kingshaven", X = 0, Z = 0, Radius = 430, Height = 60, Kind = "Main", Seed = 11, Wobble = 0.08, Steep = 1.2, RockMaterial = "Sandstone", Palms = 70, Rocks = 18, Skeletons = 0, Blurb = "Pirate capital. Shops, ships and safe harbour." },
 	{ Name = "Parrot Cay", X = 1250, Z = -700, Radius = 150, Height = 24, Kind = "Tropical", Seed = 23, Wobble = 0.16, Steep = 1.0, RockMaterial = "Rock", Palms = 22, Rocks = 8, Skeletons = 3, Blurb = "Small, green and full of parrots." },
 	{ Name = "Turtle Isle", X = -1300, Z = -600, Radius = 170, Height = 18, Kind = "Flat", Seed = 37, Wobble = 0.18, Steep = 1.5, RockMaterial = "Rock", Palms = 24, Rocks = 6, Skeletons = 3, Blurb = "Long white beaches where turtles nest." },
 	{ Name = "Cutlass Cove", X = 500, Z = -1700, Radius = 220, Height = 42, Kind = "Tropical", Seed = 41, Wobble = 0.24, Steep = 0.9, RockMaterial = "Rock", Palms = 30, Rocks = 14, Skeletons = 4, Blurb = "A jagged cove with hidden beaches." },
@@ -64,14 +64,75 @@ WorldData.MainIslandName = "Kingshaven"
 -- Town of Kingshaven (a flattened plateau on the main island)
 WorldData.Town = { X = 0, Z = 120, Radius = 175, Blend = 70, Height = 6, SquareRadius = 46 }
 
--- Cobblestone roads (segments). Width is the total road width.
-WorldData.Roads = {
-	{ X1 = 0, Z1 = 160, X2 = 0, Z2 = 302, Width = 14, Material = "Cobblestone" },
-	{ X1 = -78, Z1 = 302, X2 = 78, Z2 = 302, Width = 12, Material = "Cobblestone" },
-	{ X1 = -86, Z1 = 120, X2 = 86, Z2 = 120, Width = 12, Material = "Cobblestone" },
-	{ X1 = 0, Z1 = 80, X2 = 0, Z2 = 30, Width = 12, Material = "Cobblestone" },
-	{ X1 = 0, Z1 = 30, X2 = 0, Z2 = -205, Width = 8, Material = "Ground" },
+-- Paths of Kingshaven: sand paths from the spawn and the town square to every shop front,
+-- and trails that climb the terraces to the lighthouse, the lagoon bridge, the west lookout
+-- and the beaches. Points are { x, z }; Width is the total path width.
+--   Ramp    = the Heightmap smooths the ground along the path, cutting ramps through the
+--             terrace cliffs (the build puts plank stairs on the steep parts)
+--   Bridges = segment numbers (point i -> i + 1) that are plank bridges (no ground under them)
+--   Planks  = segment numbers covered by a raised plank walkway
+--   To      = shop Id (or place) the path leads to, used by the signposts
+export type Path = {
+	Name: string,
+	Width: number,
+	Material: string,
+	Points: { { number } },
+	Ramp: boolean?,
+	Bridges: { number }?,
+	Planks: { number }?,
+	To: string?,
 }
+WorldData.Paths = {
+	{ Name = "MainStreet", Width = 12, Material = "Sand", Points = { { 0, 299 }, { 0, 222 }, { 0, 166 } }, To = "Piers" },
+	{ Name = "ShipwrightPath", Width = 8, Material = "Sand", Points = { { 0, 252 }, { 20, 247 }, { 38, 250 } }, Planks = { 1, 2 }, To = "Shipwright" },
+	{ Name = "MerchantPath", Width = 8, Material = "Sand", Points = { { 0, 252 }, { -20, 247 }, { -38, 250 } }, Planks = { 1, 2 }, To = "Merchant" },
+	{ Name = "ArmoryPath", Width = 8, Material = "Sand", Points = { { 30, 120 }, { 55, 120 } }, To = "Armory" },
+	{ Name = "TavernPath", Width = 8, Material = "Sand", Points = { { -30, 120 }, { -57, 120 } }, To = "Tavern" },
+	{ Name = "TradingPostPath", Width = 8, Material = "Sand", Points = { { 0, 80 }, { 0, 43 } }, To = "TradingPost" },
+	{
+		Name = "LighthouseTrail", Width = 7, Material = "Sand", Ramp = true, To = "Lighthouse",
+		Points = { { 0, 54 }, { 22, 50 }, { 32, 22 }, { 28, -28 }, { 46, -74 }, { 50, -112 }, { 22, -140 }, { -14, -158 }, { -30, -190 }, { -20, -222 }, { 0, -234 } },
+	},
+	{
+		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 10 },
+		Points = { { 28, 86 }, { 70, 74 }, { 120, 64 }, { 170, 50 }, { 215, 34 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
+	},
+	{
+		Name = "WestTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lookout",
+		Points = { { -28, 86 }, { -70, 74 }, { -120, 64 }, { -170, 52 }, { -215, 36 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
+	},
+	{ Name = "EastBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { 80, 300 }, { 130, 296 }, { 186, 302 }, { 236, 318 }, { 280, 334 } } },
+	{ Name = "WestBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { -80, 300 }, { -130, 296 }, { -186, 302 }, { -236, 318 }, { -280, 334 } } },
+} :: { Path }
+
+-- The paths as straight segments (everything but the bridges): painted onto the terrain
+export type Road = { X1: number, Z1: number, X2: number, Z2: number, Width: number, Material: string, Path: string }
+WorldData.Roads = {} :: { Road }
+for _, path in WorldData.Paths do
+	local bridges = {}
+	local bridgeList: { number } = path.Bridges or {}
+	for _, i in bridgeList do
+		bridges[i] = true
+	end
+	for i = 1, #path.Points - 1 do
+		if not bridges[i] then
+			local a, b = path.Points[i], path.Points[i + 1]
+			table.insert(WorldData.Roads, { X1 = a[1], Z1 = a[2], X2 = b[1], Z2 = b[2], Width = path.Width, Material = path.Material, Path = path.Name })
+		end
+	end
+end
+
+-- A sea lagoon in the eastern cliffs, open to the sea through a channel
+WorldData.Lagoon = { X = 318, Z = -36, Radius = 42, Depth = -10, ChannelX = 500, ChannelZ = -44, ChannelWidth = 30 }
+
+-- Streams of Kingshaven: the Heightmap cuts a shallow bed along each one (deeper notches
+-- where it tumbles over a terrace cliff) and the build fills it with water parts and
+-- waterfalls. Points are { x, z }; Width is the bed width.
+export type Stream = { Name: string, Width: number, Depth: number, Points: { { number } } }
+WorldData.Streams = {
+	-- from the north-east highlands down two terraces into the lagoon
+	{ Name = "LagoonFalls", Width = 9, Depth = 2, Points = { { 214, -142 }, { 232, -124 }, { 246, -108 }, { 252, -92 }, { 263, -79 }, { 274, -66 }, { 290, -52 } } },
+} :: { Stream }
 
 -- Dredged harbour basin on the south side so ships can moor at the piers
 WorldData.Harbor = { MinX = -175, MaxX = 175, MinZ = 380, MaxZ = 950, Depth = -18, Blend = 60 }
@@ -121,7 +182,8 @@ for _, shop in WorldData.Shops do
 end
 
 WorldData.SpawnPoint = { X = 0, Z = 182 }
-WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 46, HillRadius = 110 }
+-- The lighthouse stands on a flat summit (SummitRadius) on top of the northern terraces
+WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 30, HillRadius = 130, SummitRadius = 30 }
 
 -- No PvP, no cannon damage and no skeletons inside the haven
 WorldData.SafeZone = { X = 0, Z = 160, Radius = 800 }
