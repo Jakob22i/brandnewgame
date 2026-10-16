@@ -646,8 +646,7 @@ function O.Bunting(parent: any, a: any, b: any, colors: { any }, count: number?,
 		dir = V(dir.X, 0, dir.Z).Unit
 		local w = math.min(1.4, (b - a).Magnitude / n * 0.75)
 		local color = colors[(i - 1) % #colors + 1]
-		triangle(parent, "Pennant", p, dir * (-w / 2), up * -1.5, 0.05, color, "Fabric", nc)
-		triangle(parent, "Pennant", p, dir * (w / 2), up * -1.5, 0.05, color, "Fabric", nc)
+		triangle(parent, "Pennant", p - dir * (w / 2), dir * w, up * -1.4, 0.05, color, "Fabric", nc)
 	end
 end
 

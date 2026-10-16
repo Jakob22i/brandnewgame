@@ -485,6 +485,19 @@ local function decorateMerchant(m: any, info: { [string]: any }, g: (number, num
 			end
 		end
 	end
+	-- a little cupola with a weathervane on the ridge
+	local ridge = info.RidgeY
+	local cz = info.zc
+	O.Part(m, "Cupola", V(3.2, 2.6, 3.2), CF(0, ridge + 0.6, cz), O.Jitter(O.TEAL[1], 0.04), "WoodPlanks")
+	for _, z in { -1.62, 1.62 } do
+		O.Part(m, "Louvre", V(2.0, 1.2, 0.1), CF(0, ridge + 1.1, cz + z), O.DARK, "Wood", { CanCollide = false })
+	end
+	for _, side in { -1, 1 } do
+		O.Triangle(m, "CupolaRoof", V(0, ridge + 1.9, cz), V(side * 2.2, 0, 0), V(0, 1.6, 0), 4.2, rgb(150, 70, 52), "WoodPlanks", { CanCollide = false })
+	end
+	O.Part(m, "VanePost", V(0.16, 2.4, 0.16), CF(0, ridge + 4.6, cz), IRON, "Metal", { CanCollide = false })
+	O.Part(m, "VaneArrow", V(0.12, 0.12, 2.6), CF(0, ridge + 5.2, cz), IRON, "Metal", { CanCollide = false })
+	O.Triangle(m, "VaneTail", V(0, ridge + 5.2, cz + 1.3), V(0, 0, -0.9), V(0, 0.7, 0), 0.08, IRON, "Metal", { CanCollide = false })
 	-- the merchant's flag and a hand cart of goods
 	O.FlagPole(m, CF(-half - 1.4, g(-half - 1.4, zf + 1), zf + 1), 16, rgb(30, 110, 120))
 	O.Cart(m, CF(half + 4.2, g(half + 4.2, 3), 3) * Angles(0, PI / 2 + 0.25, 0))
@@ -512,6 +525,13 @@ local function decorateArmory(m: any, info: { [string]: any }, g: (number, numbe
 	O.Dummy(m, CF(yx + 1, g(yx + 1, -4.5), -4.5) * Angles(0, -PI / 2 - 0.2, 0))
 	O.Target(m, CF(yx + 0.5, g(yx + 0.5, 8.5), 8.5) * Angles(0, -PI / 2 + 0.5, 0))
 	O.LanternPost(m, CF(5.8, g(5.8, pz + 2.6), pz + 2.6), 8)
+	-- the forge chimney through the back of the roof, smoking
+	local chX, chZ = -half + 2.6, info.zb + 2.4
+	local chTop = F + info.Hw + info.Rise * 0.72 + 1.2
+	O.Part(m, "Chimney", V(2.6, chTop - F, 2.6), CF(chX, (F + chTop) / 2, chZ), rgb(128, 120, 112), "Cobblestone")
+	O.Part(m, "ChimneyCap", V(3.2, 0.5, 3.2), CF(chX, chTop + 0.2, chZ), rgb(96, 92, 88), "Slate")
+	local smoke = O.Part(m, "SmokeSource", V(1, 0.2, 1), CF(chX, chTop + 0.6, chZ), rgb(0, 0, 0), "SmoothPlastic", { Transparency = 1, CanCollide = false, CanQuery = false })
+	P.emitter(smoke, { Name = "Smoke", Rate = 3, Lifetime = P.NumberRange.new(4, 7), Speed = P.NumberRange.new(2, 4), Size = P.NumberSequence.new({ P.NumberSequenceKeypoint.new(0, 1.2), P.NumberSequenceKeypoint.new(1, 5) }), Transparency = P.NumberSequence.new({ P.NumberSequenceKeypoint.new(0, 0.5), P.NumberSequenceKeypoint.new(1, 1) }), Color = P.ColorSequence.new(rgb(150, 146, 146)), Acceleration = V(1.2, 0.5, 0), RotSpeed = P.NumberRange.new(-20, 20) })
 end
 
 -- Trading post: an open pavilion of counters piled with goods -------------------------------------------
@@ -689,8 +709,8 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 	local smoke = O.Part(m, "SmokeSource", V(1, 0.2, 1), CF(chX, ridgeY + 2.7, chZ), rgb(0, 0, 0), "SmoothPlastic", { Transparency = 1, CanCollide = false, CanQuery = false })
 	P.emitter(smoke, { Name = "Smoke", Rate = 3, Lifetime = P.NumberRange.new(5, 8), Speed = P.NumberRange.new(2, 4), Size = P.NumberSequence.new({ P.NumberSequenceKeypoint.new(0, 1.5), P.NumberSequenceKeypoint.new(1, 6) }), Transparency = P.NumberSequence.new({ P.NumberSequenceKeypoint.new(0, 0.55), P.NumberSequenceKeypoint.new(1, 1) }), Color = P.ColorSequence.new(rgb(220, 220, 224)), Acceleration = V(1.5, 0.6, 0), RotSpeed = P.NumberRange.new(-20, 20) })
 	-- interior: kegs behind the bar, shelves of bottles
-	for i = -1, 1 do
-		O.Keg(m, CF(i * 3.4, F, zb + 1.6) * Angles(0, PI / 2, 0))
+	for _, x in { -2.4, 2.4 } do
+		O.Keg(m, CF(x, F, zb + 1.6) * Angles(0, PI / 2, 0))
 	end
 	for _, y in { 4.4, 6.2 } do
 		O.Part(m, "Shelf", V(W * 0.6, 0.25, 1.0), CF(0, F + y, zb + 0.9), rgb(120, 86, 56), "WoodPlanks", { CanCollide = false })
@@ -909,6 +929,59 @@ local function cottage(parent: any, spec: { [string]: any }, H: any)
 	return m, F + base, run
 end
 
+-- Harbour watchtower: a lookout platform on four raked legs under a conical thatch cap ---------------
+local function watchtower(parent: any, x: number, z: number, yaw: number, H: any)
+	O.Seed(5150)
+	local m = P.model(parent, "Watchtower")
+	local base = (H.GetHeight(x, z))
+	local origin = CF(x, base, z) * Angles(0, yaw, 0)
+	local function g(lx: number, lz: number): number
+		local p = origin * V(lx, 0, lz)
+		return (H.GetHeight(p.X, p.Z)) - base
+	end
+	local h = 15
+	local foot, top = 3.6, 2.5
+	local wood = rgb(104, 76, 52)
+	local function leg(sx: number, sz: number, t: number)
+		local r = foot + (top - foot) * t
+		return V(sx * r, h * t, sz * r)
+	end
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			local gy = g(sx * foot, sz * foot)
+			O.Stick(m, "Leg", V(sx * foot, gy - 1, sz * foot), leg(sx, sz, 1) + V(0, 4.4, 0) + V(sx, 0, sz) * (-(foot - top) * 4.4 / h), 0.9, 0.9, O.Jitter(wood, 0.06), "Wood")
+			P.pillar(m, sx * foot, sz * foot, gy - 0.3, gy + 0.4, 1.6, { Name = "Footing", Mat = "Slate", Color = rgb(120, 116, 108) })
+		end
+	end
+	-- braces: an X on the back, single diagonals on the sides
+	O.Stick(m, "Brace", leg(-1, -1, 0.1), leg(1, -1, 0.6), 0.35, 0.45, wood, "Wood", { CanCollide = false })
+	O.Stick(m, "Brace", leg(1, -1, 0.1), leg(-1, -1, 0.6), 0.35, 0.45, wood, "Wood", { CanCollide = false })
+	O.Stick(m, "Brace", leg(-1, -1, 0.15), leg(-1, 1, 0.65), 0.35, 0.45, wood, "Wood", { CanCollide = false })
+	O.Stick(m, "Brace", leg(1, 1, 0.15), leg(1, -1, 0.65), 0.35, 0.45, wood, "Wood", { CanCollide = false })
+	-- platform with a railing on three sides (the ladder comes up at the front)
+	O.Part(m, "Platform", V(6.8, 0.5, 6.8), CF(0, h - 0.25, 0), O.Jitter(rgb(140, 102, 68), 0.05), "WoodPlanks")
+	O.Part(m, "PlatformRim", V(7.2, 0.6, 7.2), CF(0, h - 0.75, 0), O.DARK, "Wood")
+	for _, side in { { 0, -1 }, { -1, 0 }, { 1, 0 } } do
+		local c = V(side[1] * 3.25, h + 2.6, side[2] * 3.25)
+		local size = if side[1] == 0 then V(6.6, 0.35, 0.35) else V(0.35, 0.35, 6.6)
+		O.Part(m, "Rail", size, CF(c), O.DARK, "Wood")
+	end
+	-- conical thatch cap
+	local ry = h + 4.4
+	for i, d in { 9.0, 7.0, 4.8, 2.6 } do
+		O.Cyl(m, "Thatch", CF(0, ry + (i - 1) * 0.85 + 0.45, 0), 1.0, d, O.Jitter(O.STRAW[i % #O.STRAW + 1], 0.05), "Grass", { CanCollide = false })
+	end
+	O.Ball(m, "ThatchTop", V(0, ry + 3.9, 0), 1.3, O.STRAW[2], "Grass", { CanCollide = false })
+	O.FlagPole(m, CF(0, ry + 4.1, 0), 4.5, rgb(20, 18, 22), { Width = 3.2, Height = 2.0, Diameter = 0.3 })
+	O.Lantern(m, CF(0, ry - 0.1, 0), { Range = 22, Brightness = 1.3 })
+	-- ladder up the front
+	O.Part(m, "Ladder", V(2, h + 0.5, 2), CF(0, (h + 0.5) / 2 - 0.3, top + 1.1), rgb(110, 80, 54), "Wood", { Class = "TrussPart" })
+	O.Crate(m, CF(-2.6, g(-2.6, 5.6), 5.6) * Angles(0, 0.4, 0), 2.2)
+	O.Barrel(m, CF(2.8, g(2.8, 5.2), 5.2))
+	P.transform(m, origin)
+	return m
+end
+
 -- Market stalls ------------------------------------------------------------------------------------------
 
 local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: string)
@@ -940,8 +1013,8 @@ local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: strin
 			O.Ball(m, "Coconut", V(4.9 + i * 0.3, 0.9 + (i % 2) * 0.8, -0.8 + i * 0.6), 1.0, rgb(110, 72, 40), "SmoothPlastic", { CanCollide = false })
 		end
 	elseif kind == "Fish" then
-		for i = 0, 5 do
-			O.Fish(m, CF(-3.6 + i * 1.4, 7.0, 1.9), O.Pick({ rgb(150, 170, 180), rgb(200, 150, 110), rgb(120, 150, 190) }))
+		for i = 0, 3 do
+			O.Fish(m, CF(-3.0 + i * 2.0, 7.0, 1.9), O.Pick({ rgb(150, 170, 180), rgb(200, 150, 110), rgb(120, 150, 190) }))
 		end
 		O.Part(m, "IceBox", V(6, 0.6, 1.8), CF(0, 3.45, 1.0), rgb(196, 226, 236), "Glass", { Transparency = 0.2, CanCollide = false })
 		for i = 0, 4 do
@@ -962,7 +1035,6 @@ local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: strin
 	end
 	O.Crate(m, CF(5.6, 0, 1.6) * Angles(0, 0.3, 0))
 	O.Sack(m, CF(-5.5, 0, 1.2))
-	O.Barrel(m, CF(-5.4, 0, -1.2), { Scale = 0.85 })
 	O.Lantern(m, CF(-4.3, 7.4, 2.1), { Range = 12, Brightness = 1 })
 	P.transform(m, cf)
 	return m
@@ -1284,7 +1356,7 @@ local function pier(parent: any, index: number, pd: { [string]: any }, H: any)
 	local flip = 1
 	while lz < pd.MaxZ - 20 do
 		O.LanternPost(pm, CF(x0 + flip * (hw - 0.6), y, lz) * Angles(0, if flip > 0 then -PI / 2 else PI / 2, 0), 8, { Range = 18, Brightness = 1.2 })
-		lz += 70
+		lz += 90
 		flip = -flip
 	end
 	-- cargo near the landward end and between the berths
@@ -1499,14 +1571,18 @@ function Town.Build(parent: any, H: any, World: any)
 	end
 	keep(0, 318, 16)
 	for _, pd in World.Piers do
-		keep(pd.X, 312, 9)
-		keep(pd.X, 326, 9)
+		keep(pd.X, 312, 11)
+		keep(pd.X, 326, 11)
 	end
+
+	-- A lookout tower over the harbour, east of the piers
+	watchtower(town, 112, 280, 0.2, H)
+	keep(112, 280, 15)
 
 	-- Lighthouse on the northern hill
 	local lh = World.Lighthouse
 	lighthouse(town, lh.X, ground(lh.X, lh.Z), lh.Z)
-	keep(lh.X, lh.Z, 16)
+	keep(lh.X, lh.Z, 22)
 
 	return town, clear
 end
