@@ -25,7 +25,7 @@ local Lagoon = WorldData.Lagoon
 -- Kingshaven terraces
 local STEP = 16 -- height of one terrace level
 local RISER = 0.08 -- part of a level taken by the cliff up to the next terrace
-local CLIFF_COAST = 30 -- studs over which the sea cliffs drop from the terraces to the sea
+local CLIFF_COAST = 46 -- studs over which the sea cliffs drop from the terraces to the sea
 local PATH_BANK = 7 -- studs beside a trail where the ground blends back into the terraces
 -- Highlands of Kingshaven: flat-topped hills that the terracing turns into stacked mesas
 local MESAS = {
@@ -141,7 +141,15 @@ local function mainRaw(island: WorldData.Island, x: number, z: number): number
 		end
 
 		-- coast: one tall sea cliff drops into deep water, beaches slope gently into the shallows
-		local cliffH = -7 + (e + 7) * smoothstep(0, CLIFF_COAST, cd)
+		-- the sea cliffs come down in broken, layered steps (ledges of the terrace height)
+		local reach = CLIFF_COAST * (0.75 + 0.5 * (Noise.Fbm2(x * 0.02, z * 0.02, island.Seed + 51, 2) + 1) * 0.5)
+		local cliffH = -7 + (e + 7) * smoothstep(0, reach, cd)
+		if cliffH > Town.Height + 2 then
+			local k = (cliffH - Town.Height) / STEP
+			local i = math.floor(k)
+			local f = k - i
+			cliffH = Town.Height + (i + smooth((f - 0.62) / 0.38)) * STEP
+		end
 		local beachW = island.Radius * BEACH
 		local beachH = if cd < beachW then -2.5 + 5.5 * smooth(cd / beachW) else 3 + (e - 3) * smoothstep(beachW, beachW + 70, cd)
 		h = beachH + (cliffH - beachH) * cliff
@@ -206,7 +214,8 @@ local function buildTracks()
 			continue
 		end
 		local bridges = {}
-		for _, i in path.Bridges or {} do
+		local bridgeList: { number } = path.Bridges or {}
+		for _, i in bridgeList do
 			bridges[i] = true
 		end
 		local i = 1
@@ -303,6 +312,46 @@ local function applyTracks(x: number, z: number, h: number): number
 	return h + (bestH - h) * bestW
 end
 
+-- Stream beds: a shallow trough along each stream (only on dry land)
+local streamBox = { math.huge, -math.huge, math.huge, -math.huge }
+for _, stream in WorldData.Streams do
+	for _, pt in stream.Points do
+		streamBox[1] = math.min(streamBox[1], pt[1] - 12)
+		streamBox[2] = math.max(streamBox[2], pt[1] + 12)
+		streamBox[3] = math.min(streamBox[3], pt[2] - 12)
+		streamBox[4] = math.max(streamBox[4], pt[2] + 12)
+	end
+end
+
+local function streamDistance(x: number, z: number): (number, WorldData.Stream?)
+	if x < streamBox[1] or x > streamBox[2] or z < streamBox[3] or z > streamBox[4] then
+		return math.huge, nil
+	end
+	local best, bestStream = math.huge, nil
+	for _, stream in WorldData.Streams do
+		local pts = stream.Points
+		for i = 1, #pts - 1 do
+			local d = distToSegment(x, z, pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2]) - stream.Width / 2
+			if d < best then
+				best, bestStream = d, stream
+			end
+		end
+	end
+	return best, bestStream
+end
+
+local function carveStreams(x: number, z: number, h: number): number
+	if h < 3 then
+		return h
+	end
+	local d, stream = streamDistance(x, z)
+	if stream == nil or d > 3 then
+		return h
+	end
+	local depth = (stream :: WorldData.Stream).Depth * (1 - smoothstep(-1.5, 3, d))
+	return math.max(h - depth, math.min(h, 3))
+end
+
 local function islandHeight(island: WorldData.Island, x: number, z: number): number
 	local dx = x - island.X
 	local dz = z - island.Z
@@ -316,7 +365,7 @@ local function islandHeight(island: WorldData.Island, x: number, z: number): num
 	end
 
 	if island.Kind == "Main" then
-		local h = applyTracks(x, z, mainRaw(island, x, z))
+		local h = carveStreams(x, z, applyTracks(x, z, mainRaw(island, x, z)))
 		local hw = rectMask(x, z, Harbor)
 		if hw > 0 then
 			h = math.min(h, h + (Harbor.Depth - h) * hw)
@@ -416,6 +465,9 @@ function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, i
 		local road = Heightmap.GetRoadMaterial(x, z)
 		if road then
 			return road
+		end
+		if h > 3 and streamDistance(x, z) < 1.5 then
+			return if slope > 0.7 then "Rock" else "Ground" -- stream bed
 		end
 		if slope > 0.7 then
 			-- terrace cliffs are layered sandstone, the sea cliffs below them rock

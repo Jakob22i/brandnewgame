@@ -9,7 +9,7 @@ WorldData.WaterLevel = 0
 WorldData.FloorLevel = -56 -- ocean floor
 WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on X and Z
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
-WorldData.TerrainVersion = 3 -- bump when the terrain recipe changes
+WorldData.TerrainVersion = 4 -- bump when the terrain recipe changes
 
 export type Shop = {
 	Id: string,
@@ -110,7 +110,8 @@ export type Road = { X1: number, Z1: number, X2: number, Z2: number, Width: numb
 WorldData.Roads = {} :: { Road }
 for _, path in WorldData.Paths do
 	local bridges = {}
-	for _, i in path.Bridges or {} do
+	local bridgeList: { number } = path.Bridges or {}
+	for _, i in bridgeList do
 		bridges[i] = true
 	end
 	for i = 1, #path.Points - 1 do
@@ -123,6 +124,15 @@ end
 
 -- A sea lagoon in the eastern cliffs, open to the sea through a channel
 WorldData.Lagoon = { X = 318, Z = -36, Radius = 42, Depth = -10, ChannelX = 500, ChannelZ = -44, ChannelWidth = 30 }
+
+-- Streams of Kingshaven: the Heightmap cuts a shallow bed along each one (deeper notches
+-- where it tumbles over a terrace cliff) and the build fills it with water parts and
+-- waterfalls. Points are { x, z }; Width is the bed width.
+export type Stream = { Name: string, Width: number, Depth: number, Points: { { number } } }
+WorldData.Streams = {
+	-- from the north-east highlands down two terraces into the lagoon
+	{ Name = "LagoonFalls", Width = 9, Depth = 2, Points = { { 214, -142 }, { 232, -124 }, { 246, -108 }, { 252, -92 }, { 263, -79 }, { 274, -66 }, { 290, -52 } } },
+} :: { Stream }
 
 -- Dredged harbour basin on the south side so ships can moor at the piers
 WorldData.Harbor = { MinX = -175, MaxX = 175, MinZ = 380, MaxZ = 950, Depth = -18, Blend = 60 }
