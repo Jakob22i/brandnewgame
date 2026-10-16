@@ -139,13 +139,17 @@ function Rigs.Skeleton()
 	return model
 end
 
+
 -- Shopkeepers ------------------------------------------------------------------------------
 -- Everything below decorates an R6 rig (Rigs.Base). Offsets are given in the space of the body
 -- part they are welded to; the rig faces -Z, so "front" is -Z and the character's right is +X.
+-- The R6 limbs stay as invisible joint carriers (so animations still work) and carry rounded
+-- clothes: capsule sleeves and trousers, boots with round toes, layered vests and coats.
 
 local Angles = P.CFrame.Angles
 local fromMatrix = P.CFrame.fromMatrix
 local GOLD = rgb(232, 184, 72)
+local BRASS = rgb(204, 160, 74)
 
 local function merge(a: { [string]: any }, b: { [string]: any }?)
 	if b then
@@ -163,11 +167,20 @@ end
 
 -- Cylinder welded to `body`; its axis is the offset's Y axis
 local function onCyl(model: any, body: any, name: string, length: number, diameter: number, offset: any, color: any, mat: string?)
-	return on(model, body, name, V(length, diameter, diameter), offset * P.CFrame.Angles(0, 0, math.pi / 2), color, mat, { Shape = "Cylinder" })
+	return on(model, body, name, V(length, diameter, diameter), offset * Angles(0, 0, math.pi / 2), color, mat, { Shape = "Cylinder" })
 end
 
 local function onBall(model: any, body: any, name: string, d: number, offset: any, color: any, mat: string?)
 	return on(model, body, name, V(d, d, d), offset, color, mat, { Shape = "Ball" })
+end
+
+-- Ellipsoid (a block with a Sphere mesh, which stretches with the part's size)
+local function onEgg(model: any, body: any, name: string, size: any, offset: any, color: any, mat: string?)
+	local part = on(model, body, name, size, offset, color, mat)
+	local mesh = P.Instance.new("SpecialMesh")
+	mesh.MeshType = P.Enum.MeshType.Sphere
+	mesh.Parent = part
+	return part
 end
 
 -- Wedge welded to `body`: right angle at `corner`, legs `a` and `b` (body space vectors)
@@ -186,117 +199,125 @@ end
 -- Hats -------------------------------------------------------------------------------------------
 
 -- Big three-cornered hat with upturned brims (one corner points forward)
-local function bigTricorn(model: any, head: any, color: any, trim: any?, scale: number?)
-	local s = scale or 1
-	onCyl(model, head, "HatCrown", 0.62 * s, 1.32, CF(0, 0.72, 0.02), color, "Fabric")
-	onCyl(model, head, "HatTop", 0.12, 1.12, CF(0, 1.06, 0.02), shade(color, 0.9), "Fabric")
-	local R = 1.22 * s
+local function bigTricorn(model: any, head: any, color: any, trim: any?)
+	onEgg(model, head, "HatCrown", V(1.34, 0.95, 1.34), CF(0, 0.72, 0.03), color, "Fabric")
+	local R = 1.25
 	local up = V(0, 1, 0)
 	for k = 0, 2 do
 		local m = math.rad(-90 + k * 120 + 60) -- edge midpoint direction
 		local radial = V(math.cos(m), 0, math.sin(m))
 		local along = V(-math.sin(m), 0, math.cos(m))
-		local tilt = math.rad(24)
+		local tilt = math.rad(22)
 		local wallUp = up * math.cos(tilt) + radial * math.sin(tilt)
-		local pos = radial * (R * 0.5) + V(0, 0.68, 0) + wallUp * 0.24
+		local pos = radial * (R * 0.5) + V(0, 0.62, 0) + wallUp * 0.26
 		local frame = fromMatrix(pos, along, wallUp, along:Cross(wallUp))
-		on(model, head, "HatBrim", V(R * 1.78, 0.62 * s, 0.14), frame, color, "Fabric")
+		on(model, head, "HatBrim", V(R * 1.8, 0.66, 0.14), frame, color, "Fabric")
 		if trim then
-			on(model, head, "HatTrim", V(R * 1.8, 0.1, 0.2), frame * CF(0, 0.31 * s, 0), trim, "Fabric")
+			on(model, head, "HatTrim", V(R * 1.82, 0.1, 0.2), frame * CF(0, 0.33, 0), trim, "Fabric")
 		end
 	end
-	onCyl(model, head, "HatBase", 0.1, 1.5 * s, CF(0, 0.5, 0), color, "Fabric")
+	onCyl(model, head, "HatBase", 0.1, 1.55, CF(0, 0.46, 0), color, "Fabric")
 end
 
 local function wideBrim(model: any, head: any, color: any, band: any?)
-	local tilt = CF(0, 0.5, 0) * Angles(math.rad(-8), 0, math.rad(6))
+	local tilt = CF(0, 0.52, 0) * Angles(math.rad(-8), 0, math.rad(6))
 	onCyl(model, head, "HatBrim", 0.1, 2.9, tilt, color, "Fabric")
-	onCyl(model, head, "HatCrown", 0.55, 1.3, tilt * CF(0, 0.3, 0), color, "Fabric")
-	onCyl(model, head, "HatBand", 0.2, 1.34, tilt * CF(0, 0.12, 0), band or shade(color, 0.6), "Fabric")
+	onEgg(model, head, "HatCrown", V(1.3, 1.0, 1.3), tilt * CF(0, 0.3, 0), color, "Fabric")
+	onCyl(model, head, "HatBand", 0.2, 1.3, tilt * CF(0, 0.12, 0), band or shade(color, 0.6), "Fabric")
 end
 
 local function bandana(model: any, head: any, color: any, longTails: boolean?)
-	onCyl(model, head, "Bandana", 0.52, 1.3, CF(0, 0.38, 0), color, "Fabric")
-	onCyl(model, head, "BandanaTop", 0.2, 1.16, CF(0, 0.66, 0.02), color, "Fabric")
-	onBall(model, head, "BandanaKnot", 0.38, CF(0, 0.34, 0.66), shade(color, 0.85), "Fabric")
+	onEgg(model, head, "Bandana", V(1.34, 1.0, 1.36), CF(0, 0.36, 0.03), color, "Fabric")
+	onCyl(model, head, "BandanaBand", 0.24, 1.33, CF(0, 0.2, 0), shade(color, 0.85), "Fabric")
+	onBall(model, head, "BandanaKnot", 0.4, CF(0, 0.22, 0.68), shade(color, 0.85), "Fabric")
 	local tail = if longTails then 1.0 else 0.6
 	for _, side in { -1, 1 } do
-		on(model, head, "BandanaTail", V(0.24, tail, 0.07), CF(side * 0.12, 0.3 - tail / 2, 0.7) * Angles(math.rad(12), 0, side * math.rad(14)), shade(color, 0.92), "Fabric")
+		on(model, head, "BandanaTail", V(0.24, tail, 0.07), CF(side * 0.12, 0.22 - tail / 2, 0.72) * Angles(math.rad(12), 0, side * math.rad(14)), shade(color, 0.92), "Fabric")
 	end
 end
 
 local function feather(model: any, head: any, offset: any, color: any)
-	on(model, head, "Feather", V(0.12, 1.5, 0.34), offset, color, "Fabric")
-	on(model, head, "Feather", V(0.1, 1.1, 0.26), offset * CF(0.05, 0.25, 0.12) * Angles(math.rad(-18), 0, 0), shade(color, 0.85), "Fabric")
+	onEgg(model, head, "Feather", V(0.12, 1.6, 0.36), offset, color, "Fabric")
+	onEgg(model, head, "Feather", V(0.1, 1.1, 0.26), offset * CF(0.05, 0.25, 0.12) * Angles(math.rad(-18), 0, 0), shade(color, 0.85), "Fabric")
 end
 
 -- Shopkeeper NPC. look fields (all optional except Skin):
---   Skin, Shirt, Pants, Sleeves = "Coat" | "Shirt" | "Rolled", Coat, CoatTrim, Vest, Belt, Buckle,
---   Sash, Boots, Apron, Skirt, Neckerchief, Bandolier,
+--   Skin, Shirt, Pants, Sleeves = "Coat" | "Shirt" | "Rolled", Coat, CoatTrim, LongCoat, Vest, Belt,
+--   Buckle, Sash, Boots, Apron, Skirt, Neckerchief, Bandolier,
 --   Hat = "Tricorn" | "WideBrim" | "Bandana" | "Headscarf", HatColor, HatTrim, Feather,
---   Hair, HairStyle = "Short" | "Long" | "Bun", Beard, BeardStyle = "Full" | "Long" | "Goatee",
---   Mustache, EyePatch, Earring, Parrot, Hook, Cutlass, Prop = "Hammer" | "Mug" | "Ledger"
+--   Hair, HairStyle = "Short" | "Long" | "Bun" | "Ponytail", Beard, BeardStyle = "Full" | "Long" | "Goatee",
+--   Mustache, EyePatch, Earring, Parrot, Hook, Cutlass, Prop = "Hammer" | "Mug" | "Ledger" | "Spyglass"
 function Rigs.Npc(name: string, look: { [string]: any })
 	local skin = look.Skin
 	local shirt = look.Shirt or rgb(236, 228, 210)
 	local sleeves = look.Sleeves or (if look.Coat then "Coat" else "Shirt")
-	local armColor = if sleeves == "Coat" then look.Coat elseif sleeves == "Rolled" then skin else shirt
-	local model, r = Rigs.Base({ Name = name, Skin = skin, Torso = shirt, Arms = armColor, Legs = look.Pants or rgb(80, 66, 54) })
+	local pants = look.Pants or rgb(80, 66, 54)
+	local model, r = Rigs.Base({ Name = name, Skin = skin, Torso = shirt, Arms = skin, Legs = pants })
 	local torso, head = r.Torso, r.Head
 
-	-- Rounded limbs: the R6 limb parts stay as invisible joint carriers (so animations work)
-	-- and carry cylinders and balls instead of plain blocks.
 	for _, limb in { r.RightArm, r.LeftArm, r.RightLeg, r.LeftLeg } do
 		limb.Transparency = 1
 	end
+
+	-- Arms: capsule sleeves, cuffs and round hands ---------------------------------------------------
 	local sleeveColor = if sleeves == "Coat" then look.Coat else shirt
 	for _, arm in { r.RightArm, r.LeftArm } do
 		local isLeft = arm == r.LeftArm
-		onBall(model, arm, "Shoulder", 1.02, CF(0, 0.52, 0), sleeveColor, "Fabric")
-		onCyl(model, arm, "UpperArm", 1.05, 0.92, CF(0, 0.22, 0), sleeveColor, "Fabric")
-		onCyl(model, arm, "Forearm", 0.95, 0.84, CF(0, -0.5, 0), if sleeves == "Rolled" then skin else sleeveColor, if sleeves == "Rolled" then "SmoothPlastic" else "Fabric")
-		if sleeves == "Coat" then
-			onCyl(model, arm, "Cuff", 0.45, 1.04, CF(0, -0.5, 0), look.CoatTrim or shade(look.Coat, 0.7), "Fabric")
-			onCyl(model, arm, "ShirtCuff", 0.2, 0.96, CF(0, -0.8, 0), shirt, "Fabric")
-		elseif sleeves == "Rolled" then
-			onCyl(model, arm, "SleeveRoll", 0.3, 1.0, CF(0, -0.18, 0), shade(shirt, 0.92), "Fabric")
+		onBall(model, arm, "Shoulder", 0.92, CF(0, 0.55, 0), sleeveColor, "Fabric")
+		if sleeves == "Rolled" then
+			onCyl(model, arm, "Sleeve", 0.6, 0.94, CF(0, 0.25, 0), sleeveColor, "Fabric")
+			onCyl(model, arm, "SleeveRoll", 0.3, 1.0, CF(0, -0.05, 0), shade(shirt, 0.9), "Fabric")
+			onCyl(model, arm, "Forearm", 0.75, 0.74, CF(0, -0.5, 0), skin)
 		else
-			onCyl(model, arm, "Cuff", 0.32, 0.98, CF(0, -0.72, 0), shade(shirt, 0.92), "Fabric")
+			onCyl(model, arm, "Sleeve", 1.15, 0.92, CF(0, -0.02, 0), sleeveColor, "Fabric")
+			if sleeves == "Coat" then
+				onCyl(model, arm, "Cuff", 0.42, 1.04, CF(0, -0.5, 0), look.CoatTrim or shade(look.Coat, 0.7), "Fabric")
+				onCyl(model, arm, "Ruffle", 0.16, 0.86, CF(0, -0.78, 0), shirt, "Fabric")
+			else
+				onCyl(model, arm, "Cuff", 0.26, 1.0, CF(0, -0.56, 0), shade(shirt, 0.9), "Fabric")
+			end
 		end
 		if look.Hook and isLeft then
-			onCyl(model, arm, "HookCuff", 0.35, 0.8, CF(0, -0.95, 0), rgb(70, 50, 34), "Wood")
-			on(model, arm, "Hook", V(0.14, 0.6, 0.14), CF(0, -1.35, 0), rgb(180, 184, 190), "Metal")
-			on(model, arm, "Hook", V(0.14, 0.14, 0.45), CF(0, -1.62, -0.17), rgb(180, 184, 190), "Metal")
-			on(model, arm, "Hook", V(0.14, 0.32, 0.14), CF(0, -1.5, -0.38), rgb(180, 184, 190), "Metal")
+			onCyl(model, arm, "HookCuff", 0.35, 0.8, CF(0, -0.92, 0), rgb(70, 50, 34), "Wood")
+			on(model, arm, "Hook", V(0.14, 0.6, 0.14), CF(0, -1.3, 0), rgb(186, 190, 196), "Metal")
+			on(model, arm, "Hook", V(0.14, 0.14, 0.45), CF(0, -1.57, -0.17), rgb(186, 190, 196), "Metal")
+			on(model, arm, "Hook", V(0.14, 0.32, 0.14), CF(0, -1.45, -0.38), rgb(186, 190, 196), "Metal")
 		else
-			onBall(model, arm, "Hand", 0.74, CF(0, -1.02, -0.02), skin)
+			onEgg(model, arm, "Hand", V(0.66, 0.74, 0.66), CF(0, -0.93, -0.02), skin)
 		end
 	end
 
-	-- Legs: trousers and boots, or a bell skirt ------------------------------------------------------
+	-- Legs: capsule trousers and boots with round toes, or a tiered skirt ----------------------------------
 	local boots = look.Boots or rgb(52, 38, 28)
-	if look.Skirt then
-		onCyl(model, torso, "Skirt", 1.15, 2.1, CF(0, -1.45, 0), look.Skirt, "Fabric")
-		onCyl(model, torso, "SkirtHem", 1.0, 2.45, CF(0, -2.5, 0), shade(look.Skirt, 0.94), "Fabric")
-		onCyl(model, torso, "SkirtTrim", 0.18, 2.5, CF(0, -2.92, 0), shade(look.Skirt, 0.7), "Fabric")
-	end
 	for _, leg in { r.RightLeg, r.LeftLeg } do
 		if not look.Skirt then
-			onCyl(model, leg, "Thigh", 1.25, 0.98, CF(0, 0.38, 0), look.Pants or rgb(80, 66, 54), "Fabric")
-			onCyl(model, leg, "BootCuff", 0.34, 1.1, CF(0, 0.02, 0), shade(boots, 1.25), "Fabric")
+			onCyl(model, leg, "Trousers", 1.3, 0.94, CF(0, 0.38, 0), pants, "Fabric")
+			onCyl(model, leg, "BootCuff", 0.3, 1.04, CF(0, -0.22, 0), shade(boots, 1.3), "Fabric")
 		end
-		onCyl(model, leg, "Boot", 1.05, 0.96, CF(0, -0.47, 0), boots, "Fabric")
-		on(model, leg, "BootToe", V(0.86, 0.42, 0.55), CF(0, -0.79, -0.5), boots, "Fabric")
-		on(model, leg, "BootToe", V(0.86, 0.42, 0.42), CF(0, -0.79, -0.78) * Angles(0, 0, math.pi / 2), boots, "Fabric", { Shape = "Cylinder", Size = V(0.86, 0.42, 0.42) })
-		on(model, leg, "Sole", V(0.98, 0.14, 1.55), CF(0, -0.93, -0.28), shade(boots, 0.6), "SmoothPlastic")
+		onCyl(model, leg, "Boot", 0.72, 0.96, CF(0, -0.6, 0.02), boots, "Fabric")
+		onEgg(model, leg, "BootToe", V(0.9, 0.56, 1.25), CF(0, -0.8, -0.3), boots, "Fabric")
+		on(model, leg, "Sole", V(0.94, 0.12, 1.3), CF(0, -0.95, -0.22), shade(boots, 0.55), "SmoothPlastic")
+	end
+	if look.Skirt then
+		-- an A-line skirt: four panels hanging from the waist, flaring out a little
+		local sk = look.Skirt
+		local len = 1.85
+		local flare = math.rad(7)
+		for _, side in { -1, 1 } do
+			local hang = CF(0, -0.85, side * 0.56) * Angles(-side * flare, 0, 0)
+			on(model, torso, "Skirt", V(2.16, len, 0.12), hang * CF(0, -len / 2, 0), shade(sk, if side > 0 then 0.92 else 1), "Fabric")
+			on(model, torso, "SkirtHem", V(2.2, 0.16, 0.16), hang * CF(0, -len + 0.06, 0), shade(sk, 0.65), "Fabric")
+			local sideHang = CF(side * 1.06, -0.85, 0) * Angles(0, 0, side * flare)
+			on(model, torso, "Skirt", V(0.12, len, 1.24), sideHang * CF(0, -len / 2, 0), shade(sk, 0.96), "Fabric")
+		end
 	end
 
 	-- Torso layers ---------------------------------------------------------------------------------
+	onCyl(model, torso, "Collar", 0.24, 1.12, CF(0, 1.0, 0), shade(shirt, 0.92), "Fabric")
 	if look.Apron then
 		if look.Skirt then
-			-- waist apron over the skirt
-			on(model, torso, "Apron", V(1.35, 2.0, 0.08), CF(0, -1.85, -1.16) * Angles(math.rad(-5), 0, 0), look.Apron, "Fabric")
-			on(model, torso, "ApronHem", V(1.4, 0.16, 0.1), CF(0, -2.8, -1.25) * Angles(math.rad(-5), 0, 0), shade(look.Apron, 0.85), "Fabric")
+			on(model, torso, "Apron", V(1.5, 1.6, 0.06), CF(0, -0.9, -0.66) * Angles(math.rad(7), 0, 0) * CF(0, -0.8, 0), look.Apron, "Fabric")
+			on(model, torso, "ApronBand", V(2.2, 0.22, 1.2), CF(0, -0.98, 0), look.Apron, "Fabric")
 		else
 			on(model, torso, "Apron", V(1.7, 2.7, 0.08), CF(0, -0.55, -0.56), look.Apron, "Fabric")
 			on(model, torso, "ApronPocket", V(0.9, 0.55, 0.06), CF(0.2, -0.85, -0.62), shade(look.Apron, 0.78), "Fabric")
@@ -306,53 +327,53 @@ function Rigs.Npc(name: string, look: { [string]: any })
 		end
 	end
 	if look.Vest then
-		on(model, torso, "Vest", V(2.06, 1.72, 1.06), CF(0, 0.12, 0), look.Vest, "Fabric")
-		on(model, torso, "VestOpening", V(0.46, 0.85, 0.06), CF(0, 0.55, -0.54), shirt, "Fabric")
-		for i = 0, 2 do
-			onBall(model, torso, "Button", 0.16, CF(0, 0 - i * 0.3, -0.55), GOLD, "Metal")
+		on(model, torso, "Vest", V(2.06, 1.72, 1.07), CF(0, 0.12, 0), look.Vest, "Fabric")
+		for _, side in { -1, 1 } do
+			onWedge(model, torso, "VestOpening", V(0, 0.98, -0.55), V(side * 0.42, 0, 0), V(0, -0.72, 0), 0.06, shirt, "Fabric")
 		end
-		if not look.Coat then
-			on(model, torso, "VestLacing", V(0.06, 0.6, 0.04), CF(0, 0.6, -0.575), shade(look.Vest, 0.6), "Fabric")
+		for i = 0, 2 do
+			onBall(model, torso, "Button", 0.15, CF(0, 0.12 - i * 0.28, -0.56), GOLD, "Metal")
 		end
 	end
 	if look.Coat then
 		local coat = look.Coat
 		local trim = look.CoatTrim or shade(coat, 0.7)
-		on(model, torso, "Coat", V(2.12, 1.98, 1.12), CF(0, 0.02, 0), coat, "Fabric")
-		on(model, torso, "CoatOpening", V(0.86, 1.94, 0.06), CF(0, 0, -0.57), look.Vest or shirt, "Fabric")
+		local tail = if look.LongCoat then 1.75 else 1.3
+		on(model, torso, "Coat", V(2.14, 2.0, 1.13), CF(0, 0.02, 0), coat, "Fabric")
+		on(model, torso, "CoatOpening", V(0.82, 1.96, 0.06), CF(0, 0, -0.57), look.Vest or shirt, "Fabric")
 		for _, side in { -1, 1 } do
-			on(model, torso, "Lapel", V(0.28, 1.3, 0.08), CF(side * 0.5, 0.32, -0.6) * Angles(0, 0, side * math.rad(14)), trim, "Fabric")
+			onWedge(model, torso, "Lapel", V(side * 0.41, 0.98, -0.6), V(side * 0.42, 0, 0), V(0, -0.9, 0), 0.08, trim, "Fabric")
 			for i = 0, 2 do
-				onBall(model, torso, "CoatButton", 0.15, CF(side * 0.62, -0.25 - i * 0.28, -0.6), GOLD, "Metal")
+				onBall(model, torso, "CoatButton", 0.14, CF(side * 0.6, -0.25 - i * 0.26, -0.6), GOLD, "Metal")
 			end
 			-- tails over the legs
-			on(model, torso, "CoatTail", V(0.12, 1.75, 1.08), CF(side * 1.05, -1.82, 0.04), coat, "Fabric")
-			on(model, torso, "CoatTail", V(0.66, 1.65, 0.12), CF(side * 0.74, -1.78, -0.57) * Angles(0, 0, side * math.rad(-4)), coat, "Fabric")
-			on(model, torso, "CoatHem", V(0.7, 0.16, 0.16), CF(side * 0.77, -2.6, -0.58) * Angles(0, 0, side * math.rad(-4)), trim, "Fabric")
+			on(model, torso, "CoatTail", V(0.12, tail, 1.1), CF(side * 1.06, -0.95 - tail / 2, 0.02), coat, "Fabric")
+			on(model, torso, "CoatTail", V(0.62, tail, 0.12), CF(side * 0.76, -0.95 - tail / 2, -0.58) * Angles(0, 0, side * math.rad(-3)), coat, "Fabric")
+			on(model, torso, "CoatHem", V(0.66, 0.16, 0.16), CF(side * 0.78, -0.95 - tail + 0.06, -0.6) * Angles(0, 0, side * math.rad(-3)), trim, "Fabric")
 		end
-		on(model, torso, "CoatTail", V(2.12, 1.75, 0.12), CF(0, -1.82, 0.56) * Angles(math.rad(-5), 0, 0), coat, "Fabric")
-		on(model, torso, "CoatCollar", V(2.0, 0.3, 1.16), CF(0, 0.92, 0.02), trim, "Fabric")
+		on(model, torso, "CoatTail", V(2.14, tail, 0.12), CF(0, -0.95 - tail / 2, 0.57) * Angles(math.rad(-4), 0, 0), coat, "Fabric")
+		on(model, torso, "CoatCollar", V(2.0, 0.32, 1.17), CF(0, 0.9, 0.02), trim, "Fabric")
 	end
 	if look.Bandolier then
-		on(model, torso, "Bandolier", V(0.36, 2.7, 1.18), CF(0, 0.05, 0) * Angles(0, 0, math.rad(38)), look.Bandolier, "Fabric")
-		on(model, torso, "BandolierBuckle", V(0.3, 0.3, 0.08), CF(0.18, 0.2, -0.62) * Angles(0, 0, math.rad(38)), GOLD, "Metal")
+		on(model, torso, "Bandolier", V(0.36, 2.7, 1.2), CF(0, 0.05, 0) * Angles(0, 0, math.rad(38)), look.Bandolier, "Fabric")
+		on(model, torso, "BandolierBuckle", V(0.3, 0.3, 0.08), CF(0.18, 0.2, -0.63) * Angles(0, 0, math.rad(38)), GOLD, "Metal")
 	end
 	if look.Sash then
-		on(model, torso, "Sash", V(2.16, 0.42, 1.16), CF(0, -0.42, 0), look.Sash, "Fabric")
-		on(model, torso, "SashKnot", V(0.42, 0.42, 0.14), CF(-0.7, -0.42, -0.62), shade(look.Sash, 0.85), "Fabric")
-		on(model, torso, "SashEnd", V(0.3, 1.0, 0.08), CF(-0.72, -1.05, -0.64) * Angles(0, 0, math.rad(-8)), look.Sash, "Fabric")
+		on(model, torso, "Sash", V(2.18, 0.44, 1.18), CF(0, -0.45, 0), look.Sash, "Fabric")
+		onEgg(model, torso, "SashKnot", V(0.46, 0.46, 0.26), CF(-0.7, -0.45, -0.6), shade(look.Sash, 0.85), "Fabric")
+		on(model, torso, "SashEnd", V(0.3, 1.0, 0.08), CF(-0.74, -1.05, -0.64) * Angles(0, 0, math.rad(-8)), look.Sash, "Fabric")
 	end
 	local belt = look.Belt or rgb(56, 36, 22)
-	on(model, torso, "Belt", V(2.18, 0.34, 1.18), CF(0, -0.78, 0), belt, "Fabric")
-	on(model, torso, "Buckle", V(0.56, 0.46, 0.08), CF(0, -0.78, -0.62), look.Buckle or GOLD, "Metal")
-	on(model, torso, "BuckleHole", V(0.3, 0.22, 0.06), CF(0, -0.78, -0.65), belt, "Fabric")
+	on(model, torso, "Belt", V(2.2, 0.34, 1.2), CF(0, -0.8, 0), belt, "Fabric")
+	on(model, torso, "Buckle", V(0.56, 0.46, 0.08), CF(0, -0.8, -0.63), look.Buckle or GOLD, "Metal")
+	on(model, torso, "BuckleHole", V(0.3, 0.22, 0.06), CF(0, -0.8, -0.66), belt, "Fabric")
 	if look.Neckerchief then
-		onWedge(model, torso, "Neckerchief", V(0, 0.98, -0.58), V(0.4, 0, 0), V(0, -0.55, 0), 0.08, look.Neckerchief, "Fabric")
-		onWedge(model, torso, "Neckerchief", V(0, 0.98, -0.58), V(-0.4, 0, 0), V(0, -0.55, 0), 0.08, look.Neckerchief, "Fabric")
-		on(model, torso, "NeckerchiefBand", V(1.3, 0.2, 1.08), CF(0, 0.94, 0), look.Neckerchief, "Fabric")
+		onWedge(model, torso, "Neckerchief", V(0, 0.98, -0.6), V(0.4, 0, 0), V(0, -0.55, 0), 0.08, look.Neckerchief, "Fabric")
+		onWedge(model, torso, "Neckerchief", V(0, 0.98, -0.6), V(-0.4, 0, 0), V(0, -0.55, 0), 0.08, look.Neckerchief, "Fabric")
+		onCyl(model, torso, "NeckerchiefBand", 0.22, 1.2, CF(0, 0.98, 0), look.Neckerchief, "Fabric")
 	end
 	if look.Cutlass then
-		local hip = CF(-1.12, -1.15, -0.15) * Angles(math.rad(-10), 0, math.rad(-18))
+		local hip = CF(-1.14, -1.15, -0.15) * Angles(math.rad(-10), 0, math.rad(-18))
 		on(model, torso, "Scabbard", V(0.16, 1.9, 0.36), hip, rgb(50, 34, 24), "Fabric")
 		on(model, torso, "ScabbardTip", V(0.2, 0.2, 0.4), hip * CF(0, -0.95, 0), GOLD, "Metal")
 		on(model, torso, "SwordGuard", V(0.26, 0.2, 0.7), hip * CF(0, 1.02, 0), GOLD, "Metal")
@@ -362,50 +383,41 @@ function Rigs.Npc(name: string, look: { [string]: any })
 	-- Head: hair, beard, face details, hat ---------------------------------------------------
 	if look.Hair then
 		local hair = look.Hair
+		onEgg(model, head, "Hair", V(1.32, 1.12, 1.3), CF(0, 0.16, 0.1), hair, "Fabric")
 		if look.HairStyle == "Long" then
-			on(model, head, "Hair", V(1.3, 1.65, 0.34), CF(0, -0.32, 0.48), hair, "Fabric")
-			for _, side in { -1, 1 } do
-				on(model, head, "Hair", V(0.16, 1.25, 0.86), CF(side * 0.63, -0.18, 0.1), hair, "Fabric")
-			end
-		else
-			on(model, head, "Hair", V(1.28, 0.9, 0.32), CF(0, 0.02, 0.48), hair, "Fabric")
-			for _, side in { -1, 1 } do
-				on(model, head, "Hair", V(0.14, 0.62, 0.7), CF(side * 0.62, 0.08, 0.12), hair, "Fabric")
-			end
-		end
-		if look.HairStyle == "Bun" then
-			onBall(model, head, "HairBun", 0.66, CF(0, 0.3, 0.68), hair, "Fabric")
+			onEgg(model, head, "HairLong", V(1.36, 1.9, 0.62), CF(0, -0.55, 0.42), hair, "Fabric")
+		elseif look.HairStyle == "Bun" then
+			onBall(model, head, "HairBun", 0.7, CF(0, 0.32, 0.7), hair, "Fabric")
+		elseif look.HairStyle == "Ponytail" then
+			onEgg(model, head, "Ponytail", V(0.42, 1.2, 0.42), CF(0, -0.45, 0.72) * Angles(math.rad(-12), 0, 0), hair, "Fabric")
+			onCyl(model, head, "PonytailTie", 0.14, 0.34, CF(0, 0.08, 0.66), rgb(150, 30, 30), "Fabric")
 		end
 	end
 	if look.Beard then
 		local beard = look.Beard
 		local style = look.BeardStyle or "Full"
 		if style == "Goatee" then
-			on(model, head, "Beard", V(0.42, 0.42, 0.28), CF(0, -0.58, -0.5), beard, "Fabric")
-			onWedge(model, head, "Beard", V(-0.21, -0.79, -0.5), V(0.42, 0, 0), V(0, -0.3, 0), 0.26, beard, "Fabric")
+			onEgg(model, head, "Beard", V(0.34, 0.44, 0.26), CF(0, -0.68, -0.5) * Angles(math.rad(-15), 0, 0), beard, "Fabric")
 		else
-			on(model, head, "Beard", V(1.24, 0.5, 0.62), CF(0, -0.42, -0.3), beard, "Fabric")
-			for _, side in { -1, 1 } do
-				on(model, head, "Sideburn", V(0.16, 0.62, 0.52), CF(side * 0.6, -0.12, -0.05), beard, "Fabric")
+			onEgg(model, head, "Beard", V(1.28, 0.86, 0.9), CF(0, -0.42, -0.2), beard, "Fabric")
+			if style == "Long" then
+				onEgg(model, head, "BeardTip", V(0.95, 1.1, 0.62), CF(0, -0.9, -0.34) * Angles(math.rad(-10), 0, 0), beard, "Fabric")
 			end
-			local len = if style == "Long" then 0.95 else 0.45
-			onWedge(model, head, "BeardTip", V(0, -0.67, -0.52), V(0.6, 0, 0), V(0, -len, 0), 0.5, beard, "Fabric")
-			onWedge(model, head, "BeardTip", V(0, -0.67, -0.52), V(-0.6, 0, 0), V(0, -len, 0), 0.5, beard, "Fabric")
 		end
 	end
 	if look.Mustache then
 		for _, side in { -1, 1 } do
-			on(model, head, "Mustache", V(0.46, 0.15, 0.14), CF(side * 0.22, -0.2, -0.62) * Angles(0, 0, side * math.rad(-16)), look.Mustache, "Fabric")
+			onEgg(model, head, "Mustache", V(0.52, 0.18, 0.18), CF(side * 0.24, -0.2, -0.6) * Angles(0, 0, side * math.rad(-18)), look.Mustache, "Fabric")
 		end
 	end
 	if look.EyePatch then
-		on(model, head, "EyePatch", V(0.36, 0.32, 0.08), CF(0.22, 0.1, -0.63), rgb(18, 16, 16), "Fabric")
+		onEgg(model, head, "EyePatch", V(0.36, 0.32, 0.1), CF(0.22, 0.1, -0.62), rgb(18, 16, 16), "Fabric")
 		onCyl(model, head, "EyePatchStrap", 0.07, 1.27, CF(0, 0.2, 0) * Angles(0, 0, math.rad(-20)), rgb(18, 16, 16), "Fabric")
 	end
 	if look.Earring then
-		onBall(model, head, "Earring", 0.24, CF(-0.64, -0.32, 0.04), GOLD, "Metal")
+		onCyl(model, head, "Earring", 0.06, 0.28, CF(-0.64, -0.36, 0.04) * Angles(0, 0, math.pi / 2), GOLD, "Metal")
 		if look.Earring == "Both" then
-			onBall(model, head, "Earring", 0.24, CF(0.64, -0.32, 0.04), GOLD, "Metal")
+			onCyl(model, head, "Earring", 0.06, 0.28, CF(0.64, -0.36, 0.04) * Angles(0, 0, math.pi / 2), GOLD, "Metal")
 		end
 	end
 	local hatColor = look.HatColor or rgb(36, 30, 30)
@@ -422,19 +434,18 @@ function Rigs.Npc(name: string, look: { [string]: any })
 
 	-- Parrot on the left shoulder ------------------------------------------------------------------
 	if look.Parrot then
-		local base = CF(-1.5, 1.0, 0.08)
+		local base = CF(-1.5, 1.05, 0.08)
 		local red, blue, yellow = rgb(214, 44, 36), rgb(40, 96, 200), rgb(250, 200, 40)
-		on(model, torso, "ParrotBody", V(0.5, 0.78, 0.58), base * CF(0, 0.48, 0.05) * Angles(math.rad(-14), 0, 0), red)
-		onBall(model, torso, "ParrotHead", 0.48, base * CF(0, 1.0, -0.08), red)
-		on(model, torso, "ParrotBeak", V(0.16, 0.24, 0.26), base * CF(0, 0.94, -0.36) * Angles(math.rad(25), 0, 0), yellow)
-		onBall(model, torso, "ParrotEye", 0.1, base * CF(0.2, 1.06, -0.2), rgb(15, 15, 15))
-		onBall(model, torso, "ParrotEye", 0.1, base * CF(-0.2, 1.06, -0.2), rgb(15, 15, 15))
+		onEgg(model, torso, "ParrotBody", V(0.5, 0.85, 0.6), base * CF(0, 0.45, 0.05) * Angles(math.rad(-14), 0, 0), red)
+		onBall(model, torso, "ParrotHead", 0.48, base * CF(0, 0.98, -0.08), red)
+		onEgg(model, torso, "ParrotBeak", V(0.18, 0.28, 0.3), base * CF(0, 0.92, -0.36) * Angles(math.rad(25), 0, 0), yellow)
+		onBall(model, torso, "ParrotEye", 0.1, base * CF(0.2, 1.04, -0.2), rgb(15, 15, 15))
+		onBall(model, torso, "ParrotEye", 0.1, base * CF(-0.2, 1.04, -0.2), rgb(15, 15, 15))
 		for _, side in { -1, 1 } do
-			on(model, torso, "ParrotWing", V(0.1, 0.62, 0.48), base * CF(side * 0.28, 0.42, 0.1) * Angles(math.rad(-14), 0, 0), blue)
+			onEgg(model, torso, "ParrotWing", V(0.14, 0.7, 0.5), base * CF(side * 0.27, 0.4, 0.1) * Angles(math.rad(-14), 0, 0), blue)
 		end
 		on(model, torso, "ParrotTail", V(0.24, 0.95, 0.1), base * CF(0, -0.05, 0.42) * Angles(math.rad(-28), 0, 0), blue)
 		on(model, torso, "ParrotTail", V(0.16, 0.7, 0.08), base * CF(0, 0.0, 0.48) * Angles(math.rad(-34), 0, 0), yellow)
-		on(model, torso, "ParrotFeet", V(0.36, 0.1, 0.3), base * CF(0, 0.07, 0), rgb(70, 60, 50))
 	end
 
 	-- Something in the right hand ---------------------------------------------------------------------
@@ -449,6 +460,9 @@ function Rigs.Npc(name: string, look: { [string]: any })
 	elseif look.Prop == "Ledger" then
 		on(model, hand, "Ledger", V(0.3, 1.1, 0.85), CF(0, -1.05, -0.35), rgb(120, 40, 40), "Fabric")
 		on(model, hand, "LedgerPages", V(0.32, 1.0, 0.75), CF(0.02, -1.05, -0.36), rgb(236, 224, 190), "SmoothPlastic")
+	elseif look.Prop == "Spyglass" then
+		onCyl(model, hand, "Spyglass", 1.4, 0.3, CF(0, -0.95, -0.55) * Angles(math.pi / 2, 0, 0), BRASS, "Metal")
+		onCyl(model, hand, "SpyglassGrip", 0.6, 0.36, CF(0, -0.95, -0.1) * Angles(math.pi / 2, 0, 0), rgb(60, 40, 28), "Fabric")
 	end
 
 	local h = r.Humanoid

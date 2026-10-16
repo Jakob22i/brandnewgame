@@ -50,8 +50,11 @@ local SHOPKEEPERS = {
 		Look = {
 			Skin = rgb(156, 104, 72),
 			Shirt = rgb(242, 232, 210),
-			Vest = rgb(34, 120, 124),
-			Skirt = rgb(104, 44, 98),
+			Coat = rgb(30, 104, 112),
+			CoatTrim = rgb(222, 170, 60),
+			LongCoat = true,
+			Vest = rgb(104, 44, 98),
+			Pants = rgb(46, 38, 44),
 			Sash = rgb(222, 170, 60),
 			Boots = rgb(60, 40, 32),
 			Hat = "WideBrim",
@@ -94,7 +97,7 @@ local SHOPKEEPERS = {
 		Look = {
 			Skin = rgb(240, 196, 160),
 			Shirt = rgb(246, 242, 232),
-			Sleeves = "Shirt",
+			Sleeves = "Rolled",
 			Vest = rgb(58, 126, 70),
 			Skirt = rgb(118, 74, 44),
 			Apron = rgb(240, 234, 218),
@@ -121,6 +124,7 @@ local SHOPKEEPERS = {
 			Hat = "Bandana",
 			HatColor = rgb(44, 86, 170),
 			Hair = rgb(24, 20, 18),
+			HairStyle = "Ponytail",
 			Beard = rgb(24, 20, 18),
 			BeardStyle = "Goatee",
 			Mustache = rgb(24, 20, 18),
@@ -212,7 +216,7 @@ local function shopShell(m: any, c: { [string]: any }, g: (number, number) -> nu
 	local walls = c.Walls or O.WOOD
 	local roof = c.Roof or {}
 	local half = W / 2
-	local op = c.Opening or { W = 12, Y0 = 3, H = 4.6 }
+	local op = c.Opening or { W = 12, Y0 = 2.4, H = 5.2 }
 
 	-- Foundations -------------------------------------------------------
 	if c.Stone then
@@ -401,9 +405,9 @@ local function decorateShipwright(m: any, info: { [string]: any }, g: (number, n
 	local F, zf, pz, half = info.F, info.zf, info.pz, info.half
 	shelfGoods(m, info, { "Box", "Jar", "Box" })
 	-- tools on the counter
-	O.Hammer(m, CF(-4, F + 3.25, zf - 0.3) * Angles(0, 0.4, 0))
-	O.Part(m, "Plans", V(2.4, 0.05, 1.6), CF(3, F + 3.27, zf - 0.4) * Angles(0, -0.2, 0), rgb(220, 226, 236), "SmoothPlastic", { CanCollide = false })
-	O.Part(m, "PlanLines", V(1.8, 0.06, 0.08), CF(3, F + 3.29, zf - 0.4) * Angles(0, -0.2, 0), rgb(60, 90, 160), "SmoothPlastic", { CanCollide = false })
+	O.Hammer(m, CF(-4, F + 2.65, zf - 0.3) * Angles(0, 0.4, 0))
+	O.Part(m, "Plans", V(2.4, 0.05, 1.6), CF(3, F + 2.67, zf - 0.4) * Angles(0, -0.2, 0), rgb(220, 226, 236), "SmoothPlastic", { CanCollide = false })
+	O.Part(m, "PlanLines", V(1.8, 0.06, 0.08), CF(3, F + 2.69, zf - 0.4) * Angles(0, -0.2, 0), rgb(60, 90, 160), "SmoothPlastic", { CanCollide = false })
 	-- porch: rope, barrels, oars
 	O.RopeCoil(m, CF(-half + 2.2, F, zf + 2.0))
 	O.Barrel(m, CF(half - 2, F, zf + 1.6))
@@ -455,11 +459,11 @@ end
 local function decorateMerchant(m: any, info: { [string]: any }, g: (number, number) -> number)
 	local F, zf, pz, half = info.F, info.zf, info.pz, info.half
 	shelfGoods(m, info, { "Scroll", "Bottle", "Box", "Jar" })
-	O.Scales(m, CF(-3.8, F + 3.23, zf - 0.4))
-	O.MapSheet(m, CF(3.2, F + 3.23, zf - 0.5) * Angles(0, 0.15, 0))
-	O.Scrolls(m, CF(5.4, F + 3.23, zf - 0.3), 2)
+	O.Scales(m, CF(-3.8, F + 2.63, zf - 0.4))
+	O.MapSheet(m, CF(3.2, F + 2.63, zf - 0.5) * Angles(0, 0.15, 0))
+	O.Scrolls(m, CF(5.4, F + 2.63, zf - 0.3), 2)
 	for i = -1, 1 do
-		O.Cyl(m, "Coins", CF(-1.2 + i * 0.55, F + 3.33, zf - 0.1), 0.2 + (i + 1) * 0.15, 0.5, O.GOLD, "Metal", { CanCollide = false })
+		O.Cyl(m, "Coins", CF(-1.2 + i * 0.55, F + 2.73, zf - 0.1), 0.2 + (i + 1) * 0.15, 0.5, O.GOLD, "Metal", { CanCollide = false })
 	end
 	-- porch goods
 	O.Chest(m, CF(-half + 2.4, F, zf + 1.8) * Angles(0, 0.3, 0), { Gold = true })
@@ -492,8 +496,8 @@ local function decorateArmory(m: any, info: { [string]: any }, g: (number, numbe
 	-- weapons on the back wall, visible through the window
 	O.WeaponRack(m, CF(-3.8, F, info.zb + 0.9), 6)
 	O.WeaponRack(m, CF(3.8, F, info.zb + 0.9), 6)
-	O.Cutlass(m, CF(-2.8, F + 3.35, zf - 0.3) * Angles(PI / 2, 0, 0.5))
-	O.Musket(m, CF(1.0, F + 3.35, zf - 0.6) * Angles(PI / 2, 0, -1.4))
+	O.Cutlass(m, CF(-2.8, F + 2.75, zf - 0.3) * Angles(PI / 2, 0, 0.5))
+	O.Musket(m, CF(1.0, F + 2.75, zf - 0.6) * Angles(PI / 2, 0, -1.4))
 	-- porch racks and cannonballs
 	O.WeaponRack(m, CF(-half + 1.6, F, zf + 2.8) * Angles(0, PI / 2, 0), 4.5)
 	O.Cannonballs(m, CF(half - 2.2, F, zf + 1.8))
@@ -548,25 +552,25 @@ local function buildTradingPost(m: any, c: { [string]: any }, g: (number, number
 	end
 	-- counters around three sides (open at the back for the trader)
 	local function counter(x0: number, x1: number, z0: number, z1: number)
-		O.Part(m, "Counter", V(x1 - x0, 2.9, z1 - z0), CF((x0 + x1) / 2, F + 1.45, (z0 + z1) / 2), O.Jitter(rgb(126, 88, 56), 0.05), "WoodPlanks")
-		return O.Part(m, "CounterTop", V(x1 - x0 + 0.5, 0.3, z1 - z0 + 0.5), CF((x0 + x1) / 2, F + 3.05, (z0 + z1) / 2), rgb(150, 108, 68), "WoodPlanks")
+		O.Part(m, "Counter", V(x1 - x0, 2.3, z1 - z0), CF((x0 + x1) / 2, F + 1.15, (z0 + z1) / 2), O.Jitter(rgb(126, 88, 56), 0.05), "WoodPlanks")
+		return O.Part(m, "CounterTop", V(x1 - x0 + 0.5, 0.3, z1 - z0 + 0.5), CF((x0 + x1) / 2, F + 2.45, (z0 + z1) / 2), rgb(150, 108, 68), "WoodPlanks")
 	end
 	local front = counter(-half + 2, half - 2, hd - 3.6, hd - 2.2)
 	counter(-half + 2, -half + 3.4, -hd + 3, hd - 3.6)
 	counter(half - 3.4, half - 2, -hd + 3, hd - 3.6)
 	-- goods on the counters
 	local fruit = { rgb(250, 150, 30), rgb(250, 214, 60), rgb(110, 190, 60), rgb(220, 50, 50), rgb(130, 80, 40) }
-	O.Basket(m, CF(-6.5, F + 3.2, hd - 2.9), fruit)
-	O.Basket(m, CF(-4.3, F + 3.2, hd - 2.9), { rgb(130, 80, 40), rgb(110, 70, 36) })
-	O.Cloth(m, CF(4.0, F + 3.2, hd - 2.9), rgb(180, 50, 60))
-	O.Cloth(m, CF(4.3, F + 4.0, hd - 2.9), rgb(50, 90, 170))
-	O.Cloth(m, CF(6.6, F + 3.2, hd - 2.9), rgb(230, 190, 60))
-	O.Chest(m, CF(1.6, F + 3.2, hd - 2.9) * Angles(0, PI, 0), { Scale = 0.6, Gold = true })
+	O.Basket(m, CF(-6.5, F + 2.6, hd - 2.9), fruit)
+	O.Basket(m, CF(-4.3, F + 2.6, hd - 2.9), { rgb(130, 80, 40), rgb(110, 70, 36) })
+	O.Cloth(m, CF(4.0, F + 2.6, hd - 2.9), rgb(180, 50, 60))
+	O.Cloth(m, CF(4.3, F + 3.4, hd - 2.9), rgb(50, 90, 170))
+	O.Cloth(m, CF(6.6, F + 2.6, hd - 2.9), rgb(230, 190, 60))
+	O.Chest(m, CF(1.6, F + 2.6, hd - 2.9) * Angles(0, PI, 0), { Scale = 0.6, Gold = true })
 	for i = 0, 3 do
-		O.Bottle(m, CF(-half + 2.7, F + 3.2, -3 + i * 1.2), O.Pick({ rgb(60, 120, 70), rgb(120, 60, 40), rgb(60, 80, 140) }))
+		O.Bottle(m, CF(-half + 2.7, F + 2.6, -3 + i * 1.2), O.Pick({ rgb(60, 120, 70), rgb(120, 60, 40), rgb(60, 80, 140) }))
 	end
-	O.Basket(m, CF(half - 2.7, F + 3.2, -2.5), fruit)
-	O.Scrolls(m, CF(half - 2.7, F + 3.2, 1.5), 2)
+	O.Basket(m, CF(half - 2.7, F + 2.6, -2.5), fruit)
+	O.Scrolls(m, CF(half - 2.7, F + 2.6, 1.5), 2)
 	-- hanging goods from the beams
 	for i = 0, 3 do
 		O.Fish(m, CF(-6 + i * 1.3, F + Hw - 0.7, hd - 0.6), O.Pick({ rgb(150, 170, 180), rgb(200, 150, 110) }))
@@ -581,11 +585,14 @@ local function buildTradingPost(m: any, c: { [string]: any }, g: (number, number
 	O.Crate(m, CF(-half + 2, F + 2.4, -hd + 2) * Angles(0, 0.5, 0), 1.6)
 	O.Sack(m, CF(half - 2.2, F, -hd + 1.8))
 	O.Barrel(m, CF(half - 4.2, F, -hd + 1.8))
-	O.Barrel(m, CF(-half - 1.8, g(-half - 1.8, hd + 2), hd + 2))
+	O.Barrel(m, CF(-half - 1.7, g(-half - 1.7, hd - 2.5), hd - 2.5))
 	O.Crate(m, CF(half + 1.8, g(half + 1.8, hd + 2.5), hd + 2.5) * Angles(0, 0.3, 0))
 	O.Sack(m, CF(half + 2.0, g(half + 2.0, hd + 5.0), hd + 5.0), rgb(196, 170, 120))
-	-- carved sign hanging under the front beam, over the counter
-	O.Sign(m, CF(0, F + Hw - 2.25, hd - 0.6), 7.0, 2.0, title, { Color = rgb(100, 64, 38), Hang = 1.0, TwoSided = true })
+	-- carved sign standing on the front eave of the thatch
+	O.Sign(m, CF(0, F + Hw + 2.0, hd + 1.3), 10, 2.4, title, { Color = rgb(100, 64, 38) })
+	for _, x in { -3.4, 3.4 } do
+		O.Part(m, "SignPost", V(0.4, 2.2, 0.4), CF(x, F + Hw + 0.4, hd + 1.15), DARK, "Wood", { CanCollide = false })
+	end
 	-- a barrel emblem on the gable truss facing the square
 	O.Emblem(m, CF(half + 0.1, F + Hw + rise * 0.42, 0) * Angles(0, PI / 2, 0), "Barrel", 1.1)
 	O.Emblem(m, CF(-half - 0.1, F + Hw + rise * 0.42, 0) * Angles(0, -PI / 2, 0), "Barrel", 1.1)
@@ -614,7 +621,7 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 	O.Part(m, "Floor", V(W - 0.4, 0.7, Db - 0.4), CF(0, F - 0.35, zc), rgb(118, 86, 58), "WoodPlanks")
 	O.Deck(m, -half, half, zf, pz, F, { Colors = O.WOOD })
 	-- ground floor: wide counter opening + door; upper floor: windows and a balcony door
-	local op = { W = 12, Y0 = 3, H = 4.4 }
+	local op = { W = 12, Y0 = 2.4, H = 5.0 }
 	O.PlankWall(m, CF(0, F, zf), W, H1, { Holes = { { -op.W / 2, op.W / 2, op.Y0, op.Y0 + op.H }, { 8.6, 12, 0, 6.6 } }, Colors = walls, Back = back })
 	O.PlankWall(m, CF(0, F + H1, zf), W, H2, { Holes = { { -1.6, 1.6, 0, 5.4 }, { -9.4, -6.6, 1.6, 4.4 }, { 6.6, 9.4, 1.6, 4.4 } }, Colors = O.TEAL, Back = back })
 	O.PlankWall(m, CF(0, F, zb) * Angles(0, PI, 0), W, Hw, { Colors = walls, Back = back })
@@ -691,9 +698,9 @@ local function buildTavern(m: any, c: { [string]: any }, g: (number, number) -> 
 			O.Bottle(m, CF(-6 + i * 3 + O.Range(-0.4, 0.4), F + y + 0.13, zb + 0.9), O.Pick({ rgb(60, 120, 70), rgb(120, 60, 40), rgb(60, 80, 140), rgb(170, 130, 50) }))
 		end
 	end
-	O.Mug(m, CF(-3, F + 3.23, zf - 0.4))
-	O.Mug(m, CF(-2.2, F + 3.23, zf - 0.1))
-	O.Mug(m, CF(4, F + 3.23, zf - 0.3))
+	O.Mug(m, CF(-3, F + 2.63, zf - 0.4))
+	O.Mug(m, CF(-2.2, F + 2.63, zf - 0.1))
+	O.Mug(m, CF(4, F + 2.63, zf - 0.3))
 	O.Lantern(m, CF(4.4, oy1 - 0.1, zf - 1.0), { Range = 16, Brightness = 1.4, Scale = 0.85 })
 	-- porch: tables, stools, barrels
 	for _, x in { -8, 8 } do
@@ -781,12 +788,11 @@ local function buildShop(parent: any, shop: { [string]: any }, H: any)
 			decorateArmory(m, info, g)
 		end
 	end
-	-- a carved sign on a gallows post where the path arrives
-	local stairHalf = if shop.Id == "TradingPost" then 3.5 else 3
-	local sz = (info.StairEnd or (D / 2 + 8)) + 1.6
-	local sx = -(stairHalf + 3.8)
+	-- a carved sign on a gallows post at the front corner of the porch, hanging out to the side
+	local sz = (info.pz or D / 2) + 1.0
+	local sx = -(W / 2 + 0.9)
 	local short = (string.gsub(shop.Title, "^THE ", ""))
-	O.PostSign(m, CF(sx, g(sx, sz), sz), short, { Lantern = true, Light = false, Height = 8.8, Width = math.clamp(#short * 0.36, 3.4, 4.6) })
+	O.PostSign(m, CF(sx, g(sx, sz), sz) * Angles(0, PI, 0), short, { Lantern = true, Light = false, Height = 9.2, Width = math.clamp(#short * 0.36, 3.4, 4.6) })
 	P.transform(m, origin)
 
 	-- the shopkeeper stands behind the counter, facing the street
@@ -963,10 +969,68 @@ local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: strin
 end
 
 -- The King statue on the square (keeps KingStatue.Plaque.PlaqueGui.Label for WorldService) --------------
+-- A golden pirate captain on a stepped pedestal in an octagonal fountain. The figure is a shopkeeper
+-- rig (long coat, tricorn, long beard) posed with a raised cutlass, scaled up and turned to gold.
+local function goldenFigure(parent: any, cf: any, s: number)
+	local gold, deep, bright = rgb(236, 178, 56), rgb(186, 128, 36), rgb(255, 214, 100)
+	local fig, r = Rigs.Npc("Figure", {
+		Skin = gold, Shirt = bright, Coat = gold, CoatTrim = bright, LongCoat = true, Vest = deep, Pants = deep,
+		Boots = deep, Belt = deep, Buckle = bright, Sash = deep, Hat = "Tricorn", HatColor = gold, HatTrim = bright,
+		Hair = deep, Beard = gold, BeardStyle = "Long", Mustache = bright, Cutlass = true, Earring = true,
+	})
+	-- pose: right arm raised high, left hand out to the hip
+	local function swing(limb: any, pivot: any, rot: any)
+		local moved = { limb }
+		for _, d in fig:GetDescendants() do
+			if d:IsA("Weld") and d.Part0 == limb then
+				table.insert(moved, d.Part1)
+			end
+		end
+		local t = pivot * rot * pivot:Inverse()
+		for _, part in moved do
+			part.CFrame = t * part.CFrame
+		end
+	end
+	swing(r.RightArm, r.Torso.CFrame * CF(1, 0.5, 0), Angles(math.rad(-38), 0, math.rad(118)))
+	swing(r.LeftArm, r.Torso.CFrame * CF(-1, 0.5, 0), Angles(0, 0, math.rad(-16)))
+	-- the cutlass in the raised hand
+	local grip = r.RightArm.CFrame * CF(0, -1.0, 0)
+	P.part(fig, { Name = "Grip", Size = V(0.22, 0.7, 0.22), CFrame = grip, Color = deep })
+	P.part(fig, { Name = "Guard", Size = V(0.24, 0.2, 0.95), CFrame = grip * CF(0, -0.42, 0), Color = bright })
+	P.part(fig, { Name = "Blade", Size = V(0.14, 3.4, 0.46), CFrame = grip * CF(0, -2.2, 0.06) * Angles(math.rad(5), 0, 0), Color = rgb(250, 236, 190) })
+	-- a statue: no humanoid, joints or face; a round golden head
+	for _, d in fig:GetDescendants() do
+		if d:IsA("Humanoid") or d:IsA("JointInstance") or d:IsA("Decal") or (d:IsA("SpecialMesh") and d.MeshType == P.Enum.MeshType.Head) then
+			d:Destroy()
+		end
+	end
+	r.HRP:Destroy()
+	r.Head.Shape = P.Enum.PartType.Ball
+	r.Head.Size = V(1.3, 1.3, 1.3)
+	for _, part in P.descendantParts(fig) do
+		if part.Transparency < 1 then
+			local rel = part.CFrame
+			part.Size = part.Size * s
+			part.CFrame = CF(rel.Position * s) * (rel - rel.Position)
+			part.Material = P.Enum.Material.Metal
+			part.Reflectance = 0.12
+			part.Anchored = true
+			part.CanCollide = false
+		else
+			part:Destroy()
+		end
+	end
+	P.transform(fig, cf)
+	for _, part in P.descendantParts(fig) do
+		part.Parent = parent
+	end
+	fig:Destroy()
+end
+
 local function statue(parent: any, x: number, y: number, z: number)
 	local m = P.model(parent, "KingStatue")
-	local stone = rgb(206, 196, 178)
-	local stoneDark = rgb(160, 150, 136)
+	local stone = rgb(214, 204, 186)
+	local stoneDark = rgb(166, 156, 140)
 	local gold = rgb(255, 196, 64)
 	-- octagonal fountain basin
 	P.pillar(m, 0, 0, -1, 0.6, 21, { Name = "BasinFloor", Mat = "Cobblestone", Color = stoneDark })
@@ -975,13 +1039,8 @@ local function statue(parent: any, x: number, y: number, z: number)
 		local a = i * PI / 4
 		O.Part(m, "BasinRim", V(9.2, 2.0, 1.6), CF(math.sin(a) * 10.6, 1.0, math.cos(a) * 10.6) * Angles(0, a, 0), O.Jitter(stone, 0.04), "Marble")
 		O.Part(m, "BasinLip", V(9.6, 0.4, 2.0), CF(math.sin(a) * 10.6, 2.15, math.cos(a) * 10.6) * Angles(0, a, 0), stoneDark, "Marble")
-		if i % 2 == 1 then
-			O.Lantern(m, CF(math.sin(a) * 10.6, 6.6, math.cos(a) * 10.6), { Range = 14, Brightness = 1 })
-			O.Part(m, "LanternPost", V(0.6, 4.4, 0.6), CF(math.sin(a) * 10.6, 4.55, math.cos(a) * 10.6), IRON, "Metal")
-			O.Part(m, "LanternHook", V(0.2, 0.2, 0.2), CF(math.sin(a) * 10.6, 6.75, math.cos(a) * 10.6), IRON, "Metal")
-		end
 	end
-	-- stepped pedestal
+	-- stepped pedestal with corner columns and four spouting lion... er, fish heads
 	O.Part(m, "Step", V(9, 1, 9), CF(0, 1.1, 0), stoneDark, "Marble")
 	O.Part(m, "Pedestal", V(6.4, 6.4, 6.4), CF(0, 4.8, 0), stone, "Marble")
 	O.Part(m, "PedestalBand", V(6.8, 0.5, 6.8), CF(0, 2.0, 0), stoneDark, "Marble")
@@ -991,46 +1050,20 @@ local function statue(parent: any, x: number, y: number, z: number)
 			P.pillar(m, sx * 3.25, sz * 3.25, 1.6, 8.0, 0.8, { Name = "Column", Mat = "Marble", Color = stoneDark })
 		end
 	end
+	for i = 1, 3 do
+		local a = i * PI / 2
+		local spout = CF(0, 3.4, 0) * Angles(0, a, 0) * CF(0, 0, 3.55)
+		O.Ball(m, "Spout", spout.Position, 1.0, gold, "Metal")
+		O.CylZ(m, "SpoutPipe", spout * CF(0, 0, 0.5), 0.9, 0.42, gold, "Metal")
+		O.Part(m, "Jet", V(0.35, 0.35, 2.8), spout * CF(0, -1.0, 1.9) * Angles(math.rad(-48), 0, 0), rgb(170, 230, 240), "Glass", { Transparency = 0.45, CanCollide = false, CanQuery = false })
+	end
 	local plaque = O.Part(m, "Plaque", V(5.2, 3.2, 0.3), CF(0, 4.8, 3.35), rgb(70, 50, 30), "Metal")
 	O.Part(m, "PlaqueFrame", V(5.6, 3.6, 0.2), CF(0, 4.8, 3.25), gold, "Metal")
 	P.surfaceText(plaque, "Back", "KING OF THE PIRATES\nNo king yet...", { Name = "PlaqueGui", Color = rgb(255, 214, 110), PixelsPerStud = 40 })
-	-- golden pirate king, one boot on a treasure chest, cutlass raised (scale s, faces +Z)
-	local s = 2.2
+	-- the golden captain stands on a chest of gold, facing the road to the harbour (+Z)
 	local top = 8.7
-	local function g(name: string, size: any, pos: any, rot: any?, extra: { [string]: any }?)
-		local cf = CF(pos.X * s, top + pos.Y * s, pos.Z * s) * (rot or CF())
-		local props: { [string]: any } = { Reflectance = 0.2 }
-		for k, v in extra or {} do
-			props[k] = v
-		end
-		return O.Part(m, name, size * s, cf, gold, "Metal", props)
-	end
-	O.Chest(m, CF(0.55 * s, top, 0.35 * s) * Angles(0, PI, 0), { Scale = 0.62, Color = gold, Band = rgb(230, 170, 50) })
-	g("Leg", V(0.9, 2, 0.9), V(-0.5, 1, -0.1))
-	g("Leg", V(0.9, 1.3, 0.9), V(0.55, 1.65, 0.25), Angles(math.rad(-25), 0, 0))
-	g("Boot", V(1.0, 0.8, 1.2), V(-0.5, 0.4, -0.2))
-	g("Boot", V(1.0, 0.7, 1.2), V(0.55, 1.15, 0.45))
-	g("Torso", V(2, 2, 1), V(0, 3, 0))
-	g("CoatTail", V(2.1, 1.6, 0.2), V(0, 1.6, -0.55), Angles(math.rad(10), 0, 0))
-	g("CoatTail", V(0.2, 1.5, 1.0), V(-1.05, 1.7, 0))
-	g("CoatTail", V(0.2, 1.5, 1.0), V(1.05, 1.7, 0))
-	g("Belt", V(2.1, 0.35, 1.1), V(0, 2.2, 0))
-	g("Head", V(1.2, 1.2, 1.2), V(0, 4.6, 0), nil, { Shape = "Ball" })
-	g("Beard", V(1.1, 0.6, 0.5), V(0, 4.2, 0.38))
-	g("Arm", V(0.9, 2, 0.9), V(-1.45, 3, 0.1), Angles(math.rad(-15), 0, math.rad(-8)))
-	g("Arm", V(0.9, 2, 0.9), V(1.6, 4.4, 0), Angles(0, 0, math.rad(-25)))
-	g("Blade", V(0.15, 3.6, 0.45), V(2.15, 7.0, 0), Angles(0, 0, math.rad(-8)), { Color = rgb(235, 235, 240), Reflectance = 0.3 })
-	g("Guard", V(0.9, 0.2, 0.9), V(1.95, 5.3, 0))
-	-- hat + crown
-	local hatCf = CF(0, top + 5.25 * s, 0)
-	O.Part(m, "HatBrim", V(0.2 * s, 2.3 * s, 2.3 * s), hatCf * Angles(0, 0, PI / 2), gold, "Metal", { Shape = "Cylinder", Reflectance = 0.2 })
-	for i = 0, 4 do
-		local a = i * PI * 2 / 5
-		g("CrownPoint", V(0.22, 0.7, 0.22), V(math.cos(a) * 0.52, 5.7, math.sin(a) * 0.52))
-	end
-	O.Part(m, "CrownBand", V(0.35 * s, 1.15 * s, 1.15 * s), CF(0, top + 5.42 * s, 0) * Angles(0, 0, PI / 2), gold, "Metal", { Shape = "Cylinder", Reflectance = 0.2 })
-	O.Ball(m, "Gem", V(0, top + 5.42 * s, 0.6 * s), 0.3 * s, rgb(255, 40, 70), "Neon")
-	g("Cape", V(2.3, 3.6, 0.22), V(0, 2.7, -0.7), Angles(math.rad(8), 0, 0), { Mat = "Fabric", Color = rgb(170, 30, 36), Reflectance = 0 })
+	O.Chest(m, CF(0, top, -0.6), { Scale = 0.9, Color = gold, Band = rgb(230, 170, 50), Gold = true })
+	goldenFigure(m, CF(0, top, 0.9) * Angles(0, PI, 0), 1.85)
 	local light = O.Part(m, "Spot", V(1, 1, 1), CF(0, 3, 9), rgb(0, 0, 0), "SmoothPlastic", { Transparency = 1, CanCollide = false, CanQuery = false })
 	P.pointLight(light, rgb(255, 220, 160), 20, 1.4, false)
 	P.transform(m, CF(x, y, z))

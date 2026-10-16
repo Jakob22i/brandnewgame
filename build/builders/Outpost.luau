@@ -325,7 +325,7 @@ function O.Roof(parent: any, cf: any, W: number, D: number, opts: { [string]: an
 					local z0, z1 = zs[i], zs[i + 1]
 					local gap = if i < segs then 0.05 else 0
 					local wob = Angles(O.Range(-0.015, 0.015), O.Range(-0.02, 0.02), 0)
-					cylZ(parent, "Thatch", frame(u + O.Range(-0.12, 0.12), thick + d * 0.18 + O.Range(-0.05, 0.05), (z0 + z1 - gap) / 2) * wob, z1 - z0 - gap, d * O.Range(0.95, 1.05), O.Jitter(O.Pick(colors), 0.07), "Grass", { CanCollide = false })
+					cylZ(parent, "Thatch", frame(u + O.Range(-0.2, 0.2), thick + d * 0.18 + O.Range(-0.08, 0.08), (z0 + z1 - gap) / 2) * wob, z1 - z0 - gap, d * O.Range(0.9, 1.1), O.Jitter(O.Pick(colors), 0.08), "Grass", { CanCollide = false })
 				end
 			end
 		else
