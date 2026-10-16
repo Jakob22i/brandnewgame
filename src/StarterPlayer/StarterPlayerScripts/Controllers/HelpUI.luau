@@ -31,11 +31,12 @@ function HelpUI.Init()
 		card.AutomaticSize = Enum.AutomaticSize.Y
 		UIKit.Padding(card, 10)
 		UIKit.List(card, 4, false, Enum.HorizontalAlignment.Left)
-		UIKit.Label(card, section[1], { Font = UIKit.Fonts.Title, TextColor3 = C.Wood, Size = UDim2.new(1, 0, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1 })
+		UIKit.Label(card, section[1], { FontFace = UIKit.Fonts.Title, TextColor3 = C.Wood, Size = UDim2.new(1, 0, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1 })
 		UIKit.Label(card, section[2], {
 			TextScaled = false,
 			TextSize = 16,
-			Font = UIKit.Fonts.Small,
+			LineHeight = 1.2,
+			FontFace = UIKit.Fonts.Text,
 			TextWrapped = true,
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Size = UDim2.new(1, 0, 0, 0),

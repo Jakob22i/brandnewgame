@@ -116,7 +116,7 @@ local function buildChart()
 			Position = UDim2.new(0.5, 0, 1, 2),
 			Size = UDim2.fromOffset(140, 16),
 			Text = island.Name,
-			Font = UIKit.Fonts.Body,
+			FontFace = UIKit.Fonts.Body,
 			TextSize = 13,
 			TextColor3 = INK,
 			Parent = blob,
@@ -129,7 +129,7 @@ local function buildChart()
 		Position = UDim2.new(1, -60, 0, 8),
 		Size = UDim2.fromOffset(50, 50),
 		Text = "N\n^",
-		Font = UIKit.Fonts.Title,
+		FontFace = UIKit.Fonts.Title,
 		TextSize = 20,
 		TextColor3 = INK,
 		Parent = chartCanvas,
@@ -140,7 +140,7 @@ local function buildChart()
 		BackgroundTransparency = 1,
 		Size = UDim2.fromOffset(24, 24),
 		Text = "▲",
-		Font = UIKit.Fonts.Body,
+		FontFace = UIKit.Fonts.Body,
 		TextSize = 22,
 		TextColor3 = Color3.fromRGB(220, 40, 30),
 		ZIndex = 5,
@@ -180,7 +180,7 @@ local function refreshChartMarkers()
 					Position = toChart(p.X, p.Z),
 					Size = UDim2.fromOffset(60, 18),
 					Text = "Your ship",
-					Font = UIKit.Fonts.Body,
+					FontFace = UIKit.Fonts.Body,
 					TextSize = 12,
 					TextColor3 = Color3.fromRGB(30, 60, 140),
 					Parent = shipMarkers,
@@ -296,7 +296,7 @@ local function renderTreasureMap()
 		Position = UDim2.fromScale(fx, fz),
 		Size = UDim2.fromOffset(34, 34),
 		Text = "X",
-		Font = UIKit.Fonts.Title,
+		FontFace = UIKit.Fonts.Title,
 		TextSize = 34,
 		TextColor3 = Color3.fromRGB(200, 30, 30),
 		ZIndex = 4,
@@ -311,7 +311,7 @@ local function renderTreasureMap()
 		Position = UDim2.new(1, -44, 0, 4),
 		Size = UDim2.fromOffset(40, 40),
 		Text = "N\n^",
-		Font = UIKit.Fonts.Title,
+		FontFace = UIKit.Fonts.Title,
 		TextSize = 16,
 		TextColor3 = INK,
 		ZIndex = 4,
@@ -328,8 +328,8 @@ local function buildTreasureMap()
 		Size = UDim2.fromOffset(360, 440),
 	})
 	UIKit.new("UISizeConstraint", { MaxSize = Vector2.new(360, 440), Parent = mapPanel })
-	mapTitle = UIKit.Label(mapPanel, "", { Font = UIKit.Fonts.Title, Position = UDim2.fromOffset(0, 8), Size = UDim2.new(1, 0, 0, 30), TextColor3 = INK })
-	mapSubtitle = UIKit.Label(mapPanel, "", { Position = UDim2.fromOffset(0, 38), Size = UDim2.new(1, 0, 0, 20), Font = UIKit.Fonts.Small })
+	mapTitle = UIKit.Label(mapPanel, "", { FontFace = UIKit.Fonts.Title, Position = UDim2.fromOffset(0, 8), Size = UDim2.new(1, 0, 0, 30), TextColor3 = INK })
+	mapSubtitle = UIKit.Label(mapPanel, "", { Position = UDim2.fromOffset(0, 38), Size = UDim2.new(1, 0, 0, 20), FontFace = UIKit.Fonts.Small })
 	mapCanvas = UIKit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 64),

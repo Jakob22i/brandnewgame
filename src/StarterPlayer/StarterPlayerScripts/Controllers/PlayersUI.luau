@@ -55,7 +55,7 @@ function PlayersUI.Refresh()
 		Position = UDim2.fromOffset(12, 6),
 		Size = UDim2.new(1, if State.Crew then -170 else -24, 1, -12),
 		TextWrapped = true,
-		Font = UIKit.Fonts.Small,
+		FontFace = UIKit.Fonts.Small,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
 	if State.Crew then
@@ -90,7 +90,7 @@ function PlayersUI.Refresh()
 			Position = UDim2.fromOffset(12, 30),
 			Size = UDim2.new(1, -330, 0, 18),
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Font = UIKit.Fonts.Small,
+			FontFace = UIKit.Fonts.Small,
 			TextColor3 = C.GoldDark,
 		})
 		UIKit.Button(row, "Trade", C.Gold, function()
@@ -102,7 +102,7 @@ function PlayersUI.Refresh()
 			end, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(146, 40) })
 		end
 	end
-	UIKit.Label(scroll, "Trades only work in Kingshaven.", { LayoutOrder = 999, Size = UDim2.new(1, -12, 0, 22), Font = UIKit.Fonts.Small })
+	UIKit.Label(scroll, "Trades only work in Kingshaven.", { LayoutOrder = 999, Size = UDim2.new(1, -12, 0, 22), FontFace = UIKit.Fonts.Small })
 end
 
 function PlayersUI.Toggle()
@@ -122,8 +122,8 @@ local function showInvite(text: string, timeout: number, onAnswer: (boolean) -> 
 	end
 	local frame = UIKit.Panel(inviteGui, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 104),
-		Size = UDim2.fromOffset(380, 120),
+		Position = UDim2.new(0.5, 0, 0.32, 0),
+		Size = UDim2.fromOffset(400, 124),
 	})
 	inviteFrame = frame
 	UIKit.Label(frame, text, {

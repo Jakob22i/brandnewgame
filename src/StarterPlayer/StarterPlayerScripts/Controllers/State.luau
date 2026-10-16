@@ -7,12 +7,19 @@ local Net = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Net")
 local State = {}
 
 export type MapData = { Id: number, Tier: string, Island: string, X: number, Z: number }
+export type Cosmetics = {
+	SailColors: { [string]: boolean },
+	Symbols: { [string]: boolean },
+	SailColor: string,
+	Symbol: string, -- "" = no symbol
+}
 export type Data = {
 	Gold: number,
 	Ships: { [string]: boolean },
 	Items: { [string]: boolean },
 	Maps: { MapData },
 	Stats: { [string]: number },
+	Cosmetics: Cosmetics?,
 }
 
 State.Data = nil :: Data?

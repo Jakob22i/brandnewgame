@@ -86,7 +86,7 @@ end
 -- Button that reports press/release (for touch screens)
 local function holdButton(parent: Instance, text: string, position: UDim2, key: string)
 	local button = UIKit.Button(parent, text, C.Wood, nil, { Size = UDim2.fromOffset(64, 64), Position = position })
-	button.Font = UIKit.Fonts.Title
+	button.FontFace = UIKit.Fonts.Title
 	button.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			keys[key] = true
@@ -113,7 +113,7 @@ local function buildGui()
 	UIKit.Label(hint, "A/D steer  -  W/S sails  -  C centre wheel  -  Space leave", {
 		Position = UDim2.fromOffset(10, 4),
 		Size = UDim2.new(1, -20, 0, 22),
-		Font = UIKit.Fonts.Small,
+		FontFace = UIKit.Fonts.Small,
 	})
 	local track = UIKit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -132,9 +132,9 @@ local function buildGui()
 		Parent = track,
 	})
 	UIKit.Corner(rudderMarker, 4)
-	UIKit.Label(hint, "port", { Position = UDim2.new(0.2, -50, 0, 28), Size = UDim2.fromOffset(44, 18), Font = UIKit.Fonts.Small })
-	UIKit.Label(hint, "starboard", { Position = UDim2.new(0.8, 6, 0, 28), Size = UDim2.fromOffset(70, 18), Font = UIKit.Fonts.Small })
-	sailLabel = UIKit.Label(hint, "", { Position = UDim2.fromOffset(10, 50), Size = UDim2.new(1, -20, 0, 20), Font = UIKit.Fonts.Small })
+	UIKit.Label(hint, "port", { Position = UDim2.new(0.2, -50, 0, 28), Size = UDim2.fromOffset(44, 18), FontFace = UIKit.Fonts.Small })
+	UIKit.Label(hint, "starboard", { Position = UDim2.new(0.8, 6, 0, 28), Size = UDim2.fromOffset(70, 18), FontFace = UIKit.Fonts.Small })
+	sailLabel = UIKit.Label(hint, "", { Position = UDim2.fromOffset(10, 50), Size = UDim2.new(1, -20, 0, 20), FontFace = UIKit.Fonts.Small })
 
 	-- on-screen controls (useful on phones and tablets)
 	local pad = UIKit.new("Frame", {

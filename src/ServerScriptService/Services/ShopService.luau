@@ -1,5 +1,8 @@
--- The shops of Kingshaven: Shipwright, Merchant (maps + selling treasure),
--- Armory, Tavern and the Trading Post.
+-- The shops of Kingshaven: Shipwright (ships + sail cosmetics), Merchant (maps +
+-- selling treasure), Armory, Tavern and the Trading Post.
+--
+-- Talking to a shopkeeper (ShopPrompt) fires OpenShop(shopId); the client shows a
+-- dialogue and sends ShopRequest(action, arg) for anything that costs or pays gold.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,13 +62,91 @@ function ShopService.SellTreasure(player: Player)
 	return result(true, ("Sold for %s gold!"):format(Util.FormatNumber(value)))
 end
 
+-- Sail colours and symbols (Shipwright only). Buying also rigs the new look.
+local function handleCosmetics(player: Player, data: DataService.PlayerData, action: string, arg: any)
+	local cosmetics = data.Cosmetics
+	if action == "ClearSymbol" then
+		if cosmetics.Symbol == "" then
+			return result(false, "Your sails are already plain.")
+		end
+		cosmetics.Symbol = ""
+		DataService.Changed(player)
+		ShipService.RefreshCosmetics(player)
+		return result(true, "Symbol scrubbed off. Plain sails it is!")
+	end
+	if action == "BuySailColor" or action == "EquipSailColor" then
+		local def = if type(arg) == "string" then Config.SailColors[arg] else nil
+		if not def then
+			return result(false, "Unknown sail colour.")
+		end
+		local bought = false
+		if action == "BuySailColor" then
+			if cosmetics.SailColors[def.Id] then
+				return result(false, "You already own " .. def.DisplayName .. " sails.")
+			end
+			if not DataService.SpendGold(player, def.Price) then
+				return result(false, ("You need %s gold for %s sails."):format(Util.FormatNumber(def.Price), def.DisplayName))
+			end
+			cosmetics.SailColors[def.Id] = true
+			bought = true
+			Net.Event("Fx"):FireClient(player, "Coins")
+		elseif not cosmetics.SailColors[def.Id] then
+			return result(false, "Buy " .. def.DisplayName .. " sails first.")
+		elseif cosmetics.SailColor == def.Id then
+			return result(false, def.DisplayName .. " sails are already rigged.")
+		end
+		cosmetics.SailColor = def.Id
+		DataService.Changed(player)
+		ShipService.RefreshCosmetics(player)
+		return result(true, (if bought then "%s sails bought and rigged!" else "%s sails rigged."):format(def.DisplayName))
+	end
+	-- BuySymbol / EquipSymbol
+	local def = if type(arg) == "string" then Config.SailSymbols[arg] else nil
+	if not def then
+		return result(false, "Unknown symbol.")
+	end
+	local bought = false
+	if action == "BuySymbol" then
+		if cosmetics.Symbols[def.Id] then
+			return result(false, "You already own " .. def.DisplayName .. ".")
+		end
+		if not DataService.SpendGold(player, def.Price) then
+			return result(false, ("You need %s gold for %s."):format(Util.FormatNumber(def.Price), def.DisplayName))
+		end
+		cosmetics.Symbols[def.Id] = true
+		bought = true
+		Net.Event("Fx"):FireClient(player, "Coins")
+	elseif not cosmetics.Symbols[def.Id] then
+		return result(false, "Buy " .. def.DisplayName .. " first.")
+	elseif cosmetics.Symbol == def.Id then
+		return result(false, def.DisplayName .. " is already on your sails.")
+	end
+	cosmetics.Symbol = def.Id
+	DataService.Changed(player)
+	ShipService.RefreshCosmetics(player)
+	return result(true, (if bought then "%s bought and painted on your sails!" else "%s painted on your sails."):format(def.DisplayName))
+end
+
+local COSMETIC_ACTIONS = {
+	BuySailColor = true,
+	EquipSailColor = true,
+	BuySymbol = true,
+	EquipSymbol = true,
+	ClearSymbol = true,
+}
+
 local function handle(player: Player, action: any, arg: any)
 	local data = DataService.Get(player)
 	if not data or type(action) ~= "string" then
 		return result(false, "Still loading your save...")
 	end
 
-	if action == "BuyShip" or action == "LaunchShip" or action == "ScuttleShip" then
+	if COSMETIC_ACTIONS[action] then
+		if not isNear(player, "Shipwright") then
+			return result(false, "Captain Barnaby paints sails at the shipyard.")
+		end
+		return handleCosmetics(player, data, action, arg)
+	elseif action == "BuyShip" or action == "LaunchShip" or action == "ScuttleShip" then
 		if not isNear(player, "Shipwright") then
 			return result(false, "Talk to the Shipwright at the docks.")
 		end
