@@ -21,18 +21,10 @@ local RES = 4 -- voxel size
 local Y_MIN = -64 -- bottom of the ocean floor slab (multiple of 4)
 local VERSION_ATTRIBUTE = "KOTP_TerrainVersion"
 
-local MATERIAL_COLORS: { [Enum.Material]: Color3 } = {
-	[Enum.Material.Sand] = Color3.fromRGB(240, 216, 160),
-	[Enum.Material.Grass] = Color3.fromRGB(98, 182, 68),
-	[Enum.Material.LeafyGrass] = Color3.fromRGB(70, 160, 56),
-	[Enum.Material.Rock] = Color3.fromRGB(134, 128, 118),
-	[Enum.Material.Slate] = Color3.fromRGB(118, 114, 110),
-	[Enum.Material.Basalt] = Color3.fromRGB(58, 54, 60),
-	[Enum.Material.Cobblestone] = Color3.fromRGB(168, 156, 140),
-	[Enum.Material.Ground] = Color3.fromRGB(150, 112, 74),
-	[Enum.Material.Sandstone] = Color3.fromRGB(222, 192, 144),
-	[Enum.Material.Limestone] = Color3.fromRGB(226, 220, 200),
-}
+local MATERIAL_COLORS: { [Enum.Material]: Color3 } = {}
+for name, rgb in WorldData.TerrainColors do
+	MATERIAL_COLORS[(Enum.Material :: any)[name]] = Color3.fromRGB(rgb[1], rgb[2], rgb[3])
+end
 
 local materialCache: { [string]: Enum.Material } = {}
 local function toMaterial(name: string): Enum.Material

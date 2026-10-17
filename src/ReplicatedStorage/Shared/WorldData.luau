@@ -11,6 +11,21 @@ WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
 WorldData.TerrainVersion = 4 -- bump when the terrain recipe changes
 
+-- Terrain material colours as plain RGB numbers (applied with Terrain:SetMaterialColor by the
+-- TerrainGenerator; the build tools read them too)
+WorldData.TerrainColors = {
+	Sand = { 240, 216, 160 },
+	Grass = { 98, 182, 68 },
+	LeafyGrass = { 70, 160, 56 },
+	Rock = { 134, 128, 118 },
+	Slate = { 118, 114, 110 },
+	Basalt = { 58, 54, 60 },
+	Cobblestone = { 168, 156, 140 },
+	Ground = { 150, 112, 74 },
+	Sandstone = { 222, 192, 144 },
+	Limestone = { 226, 220, 200 },
+} :: { [string]: { number } }
+
 export type Shop = {
 	Id: string,
 	Title: string,
