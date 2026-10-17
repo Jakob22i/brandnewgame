@@ -1639,8 +1639,7 @@ local function harbourClutter(parent: any, H: any)
 		{ 23, 288, -0.3, "Crates" },
 		{ -58, 289, 0.5, "Crates" },
 		{ 50, 286, -0.2, "Barrels" },
-		{ -12, 279, 0.1, "Sacks" },
-		{ 13, 281, -0.1, "Barrels" },
+		{ -27, 278, 0.1, "Sacks" },
 		{ 100, 288, -0.4, "Crates" },
 		{ -102, 288, 0.3, "Barrels" },
 	}
@@ -1986,11 +1985,14 @@ function Town.Build(parent: any, H: any, World: any)
 	-- The plaza: statue, market stalls round its edge -------------------------------------------------
 	statue(town, T.X, ground(T.X, T.Z), T.Z)
 	keep(T.X, T.Z, T.SquareRadius + 2)
+	-- the stalls stand in a crescent on the far side of the statue: seen from the arch they are its
+	-- backdrop, the gap between them keeps the view over the pool to the falls, and the sides of the
+	-- plaza stay open towards the shop paths
 	local stalls = {
-		{ -13, 243, rgb(206, 56, 48), "Fruit" },
-		{ 13, 243, rgb(40, 140, 190), "Fish" },
-		{ -21, 255, rgb(230, 170, 40), "Cloth" },
-		{ 21, 255, rgb(60, 150, 90), "Bottles" },
+		{ -10.3, 240.2, rgb(206, 56, 48), "Fruit" },
+		{ 10.3, 240.2, rgb(40, 140, 190), "Fish" },
+		{ -18.1, 248.4, rgb(230, 170, 40), "Cloth" },
+		{ 18.1, 248.4, rgb(60, 150, 90), "Bottles" },
 	}
 	O.Seed(31337)
 	for _, s in stalls do
@@ -1998,6 +2000,16 @@ function Town.Build(parent: any, H: any, World: any)
 		stall(town, CF(s[1], ground(s[1], s[2]), s[2]) * Angles(0, yaw, 0), s[3], rgb(244, 236, 220), s[4])
 		keep(s[1], s[2], 6)
 	end
+
+	-- Sightlines: the walk from the arch to the statue, and from the plaza along the paths to the
+	-- shops, stay open (no plants, rocks or props beside the street)
+	local function keepLine(x1: number, z1: number, x2: number, z2: number, half: number)
+		local dx, dz = x2 - x1, z2 - z1
+		keepRect(x1, z1, math.atan2(dx, dz), -half, half, 0, math.sqrt(dx * dx + dz * dz))
+	end
+	keepLine(0, 300, 0, 262, 13)
+	keepLine(10, 263, 50, 261, 7.5)
+	keepLine(-10, 263, -54, 261, 7.5)
 
 	-- Spawn: a compass rose on the street just south of the plaza --------------------------------------
 	local sp = World.SpawnPoint
@@ -2048,7 +2060,7 @@ function Town.Build(parent: any, H: any, World: any)
 
 	-- Cargo and nets on the quay, a railing along the pool's lip, a landing stage on the pool
 	harbourClutter(town, H)
-	for _, spot in { { -22, 289 }, { 23, 288 }, { -58, 289 }, { 50, 286 }, { -12, 279 }, { 13, 281 }, { 100, 288 }, { -102, 288 }, { -62, 275 }, { 62, 274 } } do
+	for _, spot in { { -22, 289 }, { 23, 288 }, { -58, 289 }, { 50, 286 }, { -27, 278 }, { 100, 288 }, { -102, 288 }, { -62, 275 }, { 62, 274 } } do
 		keep(spot[1], spot[2], 5)
 	end
 	-- the waterfront: the quay wall, cargo, the derrick, boats and nets on the beach, the jetty

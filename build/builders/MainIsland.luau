@@ -1191,13 +1191,11 @@ local function buildSignposts(model: any, H: any, World: any, rng: any, clear: {
 	for id, text in LABELS do
 		labels[id] = text
 	end
-	local sp = World.SpawnPoint
-	-- at the spawn, on the plaza, at every junction where the stairs climb to the next ledge,
-	-- and at the ends of the boardwalk
+	-- on the plaza (beside the statue, in view of the spawn and the arch: every shop), at every
+	-- junction where the stairs climb to the next ledge, and at the ends of the boardwalk
 	local posts = {
-		{ At = { sp.X - 10.5, sp.Z + 3 }, To = { "Shipwright", "Merchant", "Armory", "TradingPost", "Tavern", "Piers" } },
-		{ At = { -19, 272 }, To = { "Merchant", "TradingPost", "Tavern", "Piers" } },
-		{ At = { 19, 272 }, To = { "Shipwright", "Armory", "Piers" } },
+		-- (its arrows are routed from the middle of the plaza, the hub of the paths)
+		{ At = { -14, 270 }, From = { World.Town.X, World.Town.Z }, To = { "Shipwright", "Merchant", "Armory", "TradingPost", "Tavern", "Piers" } },
 		{ At = { -57, 268 }, To = { "Merchant", "TradingPost", "Tavern", "Square" } },
 		{ At = { 40, 268 }, To = { "Shipwright", "Armory", "Lagoon", "Square" } },
 		{ At = { -64, 210 }, To = { "TradingPost", "Tavern", "Lighthouse", "Lookout", "Square" } },
@@ -1211,7 +1209,7 @@ local function buildSignposts(model: any, H: any, World: any, rng: any, clear: {
 		for _, id in post.To do
 			local target = targets[id]
 			if target then
-				local dx, dz = routeDirection(nodes, edges, post.At, target)
+				local dx, dz = routeDirection(nodes, edges, post.From or post.At, target)
 				table.insert(boards, { labels[id] or id, dx, dz })
 			end
 		end
