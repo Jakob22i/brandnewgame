@@ -546,7 +546,7 @@ end
 -- small rocks right up to the walls and the path edges, broadleaf trees on the ledges, no
 -- open lawns. Further out the jungle is densest along the trails and thins out where nobody
 -- walks. Part budgets per kind (the town is filled first, it ranks above the wild jungle).
-local JUNGLE_BUDGET = { Tree = 2200, Palm = 1450, Small = 1600, Mound = 320, Thicket = 1050, Rock = 240 }
+local JUNGLE_BUDGET = { Tree = 2100, Palm = 1450, Small = 1600, Mound = 320, Thicket = 1050, Rock = 240 }
 local TOWN_REACH = 178 -- studs around the heart of the town that count as the town
 local FAR_JUNGLE = 300 -- beyond this from the heart of the town the wild jungle is thinner
 
@@ -568,7 +568,7 @@ local VIEWS = {
 	-- the rim lookout deck (floor 56.7): over the pool and the town to the sea
 	{ X = -6, Z = 110, Eye = 62, Tx = 0, Tz = 300, Ty = 10, Base = 14, Spread = 0.45, Near = 4 },
 	-- the head of the cascade on the rim, where the great fall starts
-	{ X = 12, Z = 84, Eye = 63, Tx = 0, Tz = 300, Ty = 10, Base = 16, Spread = 0.4, Near = 4 },
+	{ X = 12, Z = 84, Eye = 63, Tx = 0, Tz = 300, Ty = 10, Base = 32, Spread = 0.5, Near = -4 },
 	-- the plaza, just north of the statue: the pool and the falls between the market stalls
 	{ X = 0, Z = 246, Eye = 11.5, Tx = 0, Tz = 196, Ty = 2, Base = 22, Spread = 0.3, Near = 0 },
 }

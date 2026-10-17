@@ -673,7 +673,18 @@ end
 type Footprint = { Lo: any, Dir: any, Rgt: any, Len: number, Half: number, Y: number }
 local footprints: { Footprint } = {}
 
+-- and the walkways of every path (a corner post of a flight must not stand in the next segment)
+local corridors: { { number } } = {} -- { x1, z1, x2, z2, half width }
+
 local function inOtherFlight(p: any, own: Footprint?): boolean
+	for _, c in corridors do
+		local vx, vz = c[3] - c[1], c[4] - c[2]
+		local len2 = vx * vx + vz * vz
+		local t = if len2 > 0 then math.clamp(((p.X - c[1]) * vx + (p.Z - c[2]) * vz) / len2, 0, 1) else 0
+		if (c[1] + vx * t - p.X) ^ 2 + (c[2] + vz * t - p.Z) ^ 2 < (c[5] - 0.2) ^ 2 then
+			return true
+		end
+	end
 	for _, f in footprints do
 		if f == own or math.abs(p.Y - f.Y) > 8 then
 			continue
@@ -841,7 +852,18 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 	local STEP = 2.2
 	-- every flight's footprint first, so each railing knows its neighbours
 	table.clear(footprints)
+	table.clear(corridors)
 	for _, path in World.Paths do
+		local bridgeSegs = {}
+		for _, i in path.Bridges or {} do
+			bridgeSegs[i] = true
+		end
+		for i = 1, #path.Points - 1 do
+			if not bridgeSegs[i] then
+				local a, b = path.Points[i], path.Points[i + 1]
+				table.insert(corridors, { a[1], a[2], b[1], b[2], path.Width / 2 })
+			end
+		end
 		if path.Ramp then
 			local skip = {}
 			for _, i in path.Bridges or {} do

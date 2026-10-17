@@ -1570,20 +1570,21 @@ local function welcomeArch(parent: any, x: number, y: number, z: number)
 	end
 	P.beam(m, V(-11.6, 17.6, 0), V(11.6, 17.6, 0), 1.6, { Name = "ArchBeam", Mat = "Wood", Color = rgb(104, 72, 48) })
 	P.beam(m, V(-10.6, 16.3, 0), V(10.6, 16.3, 0), 0.8, { Name = "ArchBeam", Mat = "Wood", Color = DARK })
-	local sign = O.Sign(m, CF(0, 14.2, 0.1), 15, 3.2, "KINGSHAVEN", { TwoSided = true, Hang = 1.4, Color = rgb(92, 58, 36), PixelsPerStud = 26 })
+	local sign = O.Sign(m, CF(0, 20.05, 0.1), 15, 3.2, "KINGSHAVEN", { TwoSided = true, Color = rgb(92, 58, 36), PixelsPerStud = 26 })
 	sign.Name = "ArchSign"
-	-- (all hung high: from the quay the King statue shows whole under the sign)
+	-- (the board stands on the lintel: from the quay and the piers the King statue shows whole
+	-- through the opening, whatever the eye height)
 	-- skull and crossbones on top
 	local bone = rgb(236, 230, 210)
-	O.Ball(m, "Skull", V(0, 19.6, 0), 2.2, bone, "SmoothPlastic")
-	O.Part(m, "Jaw", V(1.4, 0.7, 1.3), CF(0, 18.5, 0.25), bone, "SmoothPlastic")
+	O.Ball(m, "Skull", V(0, 23.0, 0), 2.2, bone, "SmoothPlastic")
+	O.Part(m, "Jaw", V(1.4, 0.7, 1.3), CF(0, 21.9, 0.25), bone, "SmoothPlastic")
 	for _, ex in { -0.45, 0.45 } do
-		O.Ball(m, "EyeSocket", V(ex, 19.7, 0.9), 0.62, rgb(30, 26, 24), "SmoothPlastic")
+		O.Ball(m, "EyeSocket", V(ex, 23.1, 0.9), 0.62, rgb(30, 26, 24), "SmoothPlastic")
 	end
 	for _, a in { 35, -35 } do
-		O.Part(m, "Bone", V(4.4, 0.5, 0.5), CF(0, 18.6, -0.4) * Angles(0, 0, math.rad(a)), bone, "SmoothPlastic")
+		O.Part(m, "Bone", V(4.4, 0.5, 0.5), CF(0, 22.6, -0.4) * Angles(0, 0, math.rad(a)), bone, "SmoothPlastic")
 		for _, s in { -1, 1 } do
-			O.Ball(m, "BoneEnd", (CF(0, 18.6, -0.4) * Angles(0, 0, math.rad(a)) * CF(s * 2.2, 0, 0)).Position, 0.75, bone, "SmoothPlastic")
+			O.Ball(m, "BoneEnd", (CF(0, 22.6, -0.4) * Angles(0, 0, math.rad(a)) * CF(s * 2.2, 0, 0)).Position, 0.75, bone, "SmoothPlastic")
 		end
 	end
 	-- banners hanging from the beam
@@ -1592,7 +1593,7 @@ local function welcomeArch(parent: any, x: number, y: number, z: number)
 		O.Part(m, "BannerTrim", V(2.3, 0.3, 0.14), CF(side * 7.2, 11.9, 0.6), O.BRASS, "Fabric", { CanCollide = false })
 		O.Lantern(m, CF(side * 4.6, 16.0, 0.9), { Range = 14, Brightness = 1.1 })
 	end
-	O.Bunting(m, V(-9.8, 16.0, -0.7), V(9.8, 16.0, -0.7), { rgb(206, 50, 48), rgb(250, 210, 70), rgb(40, 110, 170), rgb(250, 246, 236) }, 10, 1.4)
+	O.Bunting(m, V(-9.8, 15.7, -0.7), V(9.8, 15.7, -0.7), { rgb(206, 50, 48), rgb(250, 210, 70), rgb(40, 110, 170), rgb(250, 246, 236) }, 10, 0.6)
 	P.transform(m, CF(x, y, z))
 	return m
 end
