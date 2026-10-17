@@ -521,11 +521,11 @@ local function decorateArmory(m: any, info: { [string]: any }, g: (number, numbe
 	-- a cannon guarding the steps
 	O.Cannon(m, CF(-7.2, g(-7.2, pz + 3.0), pz + 3.0) * Angles(0, -0.35, 0), 1.1)
 	O.Cannonballs(m, CF(7.0, g(7.0, pz + 2.4), pz + 2.4), 0.9)
-	-- practice yard beside the armory: straw dummies and a shooting target
-	local yx = half + 5.5
-	O.Dummy(m, CF(yx, g(yx, 2), 2) * Angles(0, -PI / 2 + 0.3, 0))
-	O.Dummy(m, CF(yx + 1, g(yx + 1, -4.5), -4.5) * Angles(0, -PI / 2 - 0.2, 0))
-	O.Target(m, CF(yx + 0.5, g(yx + 0.5, 8.5), 8.5) * Angles(0, -PI / 2 + 0.5, 0))
+	-- practice yard beside the armory (on the pool side: the Lagoon trail runs down the other)
+	local yx = -(half + 5.5)
+	O.Dummy(m, CF(yx, g(yx, 2), 2) * Angles(0, PI / 2 - 0.3, 0))
+	O.Dummy(m, CF(yx - 1, g(yx - 1, -4.5), -4.5) * Angles(0, PI / 2 + 0.2, 0))
+	O.Target(m, CF(yx - 0.5, g(yx - 0.5, 8.5), 8.5) * Angles(0, PI / 2 - 0.5, 0))
 	O.LanternPost(m, CF(5.8, g(5.8, pz + 2.6), pz + 2.6), 8)
 	-- the forge chimney through the back of the roof, smoking
 	local chX, chZ = -half + 2.6, info.zb + 2.4
@@ -1476,6 +1476,31 @@ local function boardwalk(parent: any, H: any)
 	for x = x0, x1, 4 do
 		prof[x] = boardwalkHeight(H, x)
 	end
+	-- over the creek the ground dips away: the deck spans it level from bank to bank instead
+	-- (a sample is in a dip when it lies well below the highest ground on both sides of it)
+	local dip = {}
+	for x = x0, x1, 4 do
+		local left, right = -math.huge, -math.huge
+		for xx = x0, x, 4 do
+			left = math.max(left, prof[xx])
+		end
+		for xx = x, x1, 4 do
+			right = math.max(right, prof[xx])
+		end
+		dip[x] = prof[x] < math.min(left, right) - 1
+	end
+	for x = x0, x1, 4 do
+		if dip[x] then
+			local xa, xb = x, x
+			while dip[xa] do
+				xa -= 4
+			end
+			while dip[xb] do
+				xb += 4
+			end
+			prof[x] = prof[xa] + (prof[xb] - prof[xa]) * (x - xa) / (xb - xa)
+		end
+	end
 	local function hAt(x: number): number
 		local xa = math.clamp(math.floor((x - x0) / 4) * 4 + x0, x0, x1 - 4)
 		local t = (x - xa) / 4
@@ -1530,43 +1555,44 @@ local function welcomeArch(parent: any, x: number, y: number, z: number)
 	local m = P.model(parent, "WelcomeArch")
 	for _, side in { -1, 1 } do
 		local px = side * 9.8
-		P.pillar(m, px, 0, -1, 16.5, 1.9, { Name = "ArchPost", Mat = "Wood", Color = rgb(104, 72, 48) })
+		P.pillar(m, px, 0, -1, 19.5, 1.9, { Name = "ArchPost", Mat = "Wood", Color = rgb(104, 72, 48) })
 		P.pillar(m, px, 0, -0.5, 1.2, 3.2, { Name = "ArchFooting", Mat = "Cobblestone", Color = rgb(140, 132, 122) })
-		for _, ry in { 3, 3.6, 11.5, 12.1 } do
+		for _, ry in { 3, 3.6, 14.5, 15.1 } do
 			P.pillar(m, px, 0, ry, ry + 0.35, 2.05, { Name = "RopeWrap", Mat = "Fabric", Color = O.ROPE, CanCollide = false })
 		end
-		O.Stick(m, "ArchBrace", V(px, 10.6, 0), V(px - side * 3.4, 14.3, 0), 0.6, 0.6, DARK, "Wood", { CanCollide = false })
-		local torch = O.Part(m, "TorchBowl", V(1.6, 0.8, 1.6), CF(px, 17.0, 0), IRON, "Metal")
+		O.Stick(m, "ArchBrace", V(px, 13.6, 0), V(px - side * 3.4, 17.3, 0), 0.6, 0.6, DARK, "Wood", { CanCollide = false })
+		local torch = O.Part(m, "TorchBowl", V(1.6, 0.8, 1.6), CF(px, 20.0, 0), IRON, "Metal")
 		local fire = P.Instance.new("Fire")
 		fire.Size = 3.5
 		fire.Heat = 7
 		fire.Parent = torch
 		P.pointLight(torch, rgb(255, 160, 80), 22, 1.4, false)
 	end
-	P.beam(m, V(-11.6, 14.6, 0), V(11.6, 14.6, 0), 1.6, { Name = "ArchBeam", Mat = "Wood", Color = rgb(104, 72, 48) })
-	P.beam(m, V(-10.6, 13.3, 0), V(10.6, 13.3, 0), 0.8, { Name = "ArchBeam", Mat = "Wood", Color = DARK })
-	local sign = O.Sign(m, CF(0, 11.2, 0.1), 15, 3.2, "KINGSHAVEN", { TwoSided = true, Hang = 1.4, Color = rgb(92, 58, 36), PixelsPerStud = 26 })
+	P.beam(m, V(-11.6, 17.6, 0), V(11.6, 17.6, 0), 1.6, { Name = "ArchBeam", Mat = "Wood", Color = rgb(104, 72, 48) })
+	P.beam(m, V(-10.6, 16.3, 0), V(10.6, 16.3, 0), 0.8, { Name = "ArchBeam", Mat = "Wood", Color = DARK })
+	local sign = O.Sign(m, CF(0, 14.2, 0.1), 15, 3.2, "KINGSHAVEN", { TwoSided = true, Hang = 1.4, Color = rgb(92, 58, 36), PixelsPerStud = 26 })
 	sign.Name = "ArchSign"
+	-- (all hung high: from the quay the King statue shows whole under the sign)
 	-- skull and crossbones on top
 	local bone = rgb(236, 230, 210)
-	O.Ball(m, "Skull", V(0, 16.6, 0), 2.2, bone, "SmoothPlastic")
-	O.Part(m, "Jaw", V(1.4, 0.7, 1.3), CF(0, 15.5, 0.25), bone, "SmoothPlastic")
+	O.Ball(m, "Skull", V(0, 19.6, 0), 2.2, bone, "SmoothPlastic")
+	O.Part(m, "Jaw", V(1.4, 0.7, 1.3), CF(0, 18.5, 0.25), bone, "SmoothPlastic")
 	for _, ex in { -0.45, 0.45 } do
-		O.Ball(m, "EyeSocket", V(ex, 16.7, 0.9), 0.62, rgb(30, 26, 24), "SmoothPlastic")
+		O.Ball(m, "EyeSocket", V(ex, 19.7, 0.9), 0.62, rgb(30, 26, 24), "SmoothPlastic")
 	end
 	for _, a in { 35, -35 } do
-		O.Part(m, "Bone", V(4.4, 0.5, 0.5), CF(0, 15.6, -0.4) * Angles(0, 0, math.rad(a)), bone, "SmoothPlastic")
+		O.Part(m, "Bone", V(4.4, 0.5, 0.5), CF(0, 18.6, -0.4) * Angles(0, 0, math.rad(a)), bone, "SmoothPlastic")
 		for _, s in { -1, 1 } do
-			O.Ball(m, "BoneEnd", (CF(0, 15.6, -0.4) * Angles(0, 0, math.rad(a)) * CF(s * 2.2, 0, 0)).Position, 0.75, bone, "SmoothPlastic")
+			O.Ball(m, "BoneEnd", (CF(0, 18.6, -0.4) * Angles(0, 0, math.rad(a)) * CF(s * 2.2, 0, 0)).Position, 0.75, bone, "SmoothPlastic")
 		end
 	end
 	-- banners hanging from the beam
 	for _, side in { -1, 1 } do
-		O.Part(m, "Banner", V(2.2, 5, 0.12), CF(side * 7.2, 11.3, 0.6), rgb(150, 30, 34), "Fabric", { CanCollide = false })
-		O.Part(m, "BannerTrim", V(2.3, 0.3, 0.14), CF(side * 7.2, 8.9, 0.6), O.BRASS, "Fabric", { CanCollide = false })
-		O.Lantern(m, CF(side * 4.6, 13.0, 0.9), { Range = 14, Brightness = 1.1 })
+		O.Part(m, "Banner", V(2.2, 5, 0.12), CF(side * 7.2, 14.3, 0.6), rgb(150, 30, 34), "Fabric", { CanCollide = false })
+		O.Part(m, "BannerTrim", V(2.3, 0.3, 0.14), CF(side * 7.2, 11.9, 0.6), O.BRASS, "Fabric", { CanCollide = false })
+		O.Lantern(m, CF(side * 4.6, 16.0, 0.9), { Range = 14, Brightness = 1.1 })
 	end
-	O.Bunting(m, V(-9.8, 13.0, -0.7), V(9.8, 13.0, -0.7), { rgb(206, 50, 48), rgb(250, 210, 70), rgb(40, 110, 170), rgb(250, 246, 236) }, 10, 1.4)
+	O.Bunting(m, V(-9.8, 16.0, -0.7), V(9.8, 16.0, -0.7), { rgb(206, 50, 48), rgb(250, 210, 70), rgb(40, 110, 170), rgb(250, 246, 236) }, 10, 1.4)
 	P.transform(m, CF(x, y, z))
 	return m
 end
@@ -1761,10 +1787,22 @@ local function cargo(parent: any, H: any, x: number, z: number, yaw: number, kin
 	return m
 end
 
--- A net drying on a rack of two posts (cf: ground between the posts, the net in the XY plane)
-local function netRack(parent: any, cf: any, w: number)
+-- A net drying on a rack of two posts at (x, z) turned by yaw (the net in the posts' plane);
+-- each post stands on its own ground, the bar level over the higher one
+local function netRack(parent: any, H: any, x: number, z: number, yaw: number, w: number)
+	local turn = CF(x, 0, z) * Angles(0, yaw, 0)
+	local top = -math.huge
+	local feet = {}
 	for _, sx in { -w / 2, w / 2 } do
-		O.Part(parent, "RackPost", V(0.5, 5.6, 0.5), cf * CF(sx, 2.3, 0) * Angles(0, 0, math.rad(O.Range(-3, 3))), O.Jitter(O.DARK, 0.06), "Wood")
+		local p = (turn * CF(sx, 0, 0)).Position
+		local g = (H.GetHeight(p.X, p.Z))
+		feet[sx] = g
+		top = math.max(top, g)
+	end
+	local cf = CF(x, top, z) * Angles(0, yaw, 0)
+	for _, sx in { -w / 2, w / 2 } do
+		local len = top - feet[sx] + 5.6
+		O.Part(parent, "RackPost", V(0.5, len, 0.5), cf * CF(sx, 5.1 - len / 2, 0) * Angles(0, 0, math.rad(O.Range(-2, 2))), O.Jitter(O.DARK, 0.06), "Wood")
 	end
 	O.Part(parent, "RackBar", V(w + 0.8, 0.4, 0.4), cf * CF(0, 4.9, 0), O.DARK, "Wood")
 	O.Net(parent, cf * CF(0, 3.2, 0), w - 0.6, 3.2)
@@ -1833,9 +1871,11 @@ local function quayWall(parent: any, H: any, World: any, steps: { { number } })
 	local function lowAt(x: number): number
 		return math.min((H.GetHeight(x, zf + 0.8)), (H.GetHeight(x, zf + 2.5)) + 0.6)
 	end
-	local function inSteps(x: number): boolean
+	-- (a flight along the wall, s[3] = the way it descends, keeps the wall behind it and only
+	-- clears the posts from under its landing)
+	local function inSteps(x: number, alongToo: boolean?): boolean
 		for _, s in steps do
-			if math.abs(x - s[1]) < s[2] / 2 + 0.4 then
+			if (alongToo or not s[3]) and math.abs(x - s[1]) < s[2] / 2 + 0.4 then
 				return true
 			end
 		end
@@ -1885,13 +1925,33 @@ local function quayWall(parent: any, H: any, World: any, steps: { { number } })
 		for k = 0, posts do
 			local x = xa + len * k / posts
 			local top = topAt(x)
-			P.pillar(m, x, zf + 0.45, lowAt(x) - 2, top + 0.9, 1.15, { Name = "QuayPost", Mat = "Wood", Color = O.Jitter(wood, 0.07) })
+			if not inSteps(x, true) then
+				P.pillar(m, x, zf + 0.45, lowAt(x) - 2, top + 0.9, 1.15, { Name = "QuayPost", Mat = "Wood", Color = O.Jitter(wood, 0.07) })
+			end
 		end
 	end
 	-- steps down to the beach
 	for _, s in steps do
 		local x, w = s[1], s[2]
 		local top = topAt(x)
+		if s[3] then
+			-- where the quay stands high over a falling beach, the flight runs along the wall
+			-- face (the sand is level that way) from a landing out over the wall
+			local dirx = s[3]
+			local zc = zf + 1.1 + w / 2
+			local lz0, lz1 = zf - 2.4, zf + 1.1 + w
+			O.Part(m, "StepLanding", V(w + 0.6, 0.8, lz1 - lz0), CF(x, top + 0.15, (lz0 + lz1) / 2), O.Jitter(rgb(96, 68, 46), 0.05), "Wood")
+			for _, sx in { -1, 1 } do
+				local px = x + sx * (w / 2)
+				P.pillar(m, px, lz1 - 0.4, (H.GetHeight(px, lz1 - 0.4)) - 1.5, top - 0.2, 0.8, { Name = "QuayPost", Mat = "Wood", Color = O.Jitter(wood, 0.07) })
+			end
+			local x0 = x + dirx * (w + 0.6) / 2
+			local rise = top - (H.GetHeight(x0 + dirx * 6, zc))
+			local run = (math.max(1, math.ceil(rise / 0.7) - 1) + 1) * 1.2
+			rise = top - (H.GetHeight(x0 + dirx * run, zc)) + 0.2
+			O.Stairs(m, CF(x0, top + 0.55, zc) * Angles(0, dirx * PI / 2, 0), w, rise + 0.55)
+			continue
+		end
 		local rise = top - (H.GetHeight(x, zf + 5))
 		local run = (math.max(1, math.ceil(rise / 0.7) - 1) + 1) * 1.2
 		rise = top - (H.GetHeight(x, zf + run)) + 0.2
@@ -1905,8 +1965,9 @@ end
 local function waterfront(parent: any, H: any, World: any, keep: (number, number, number) -> ())
 	local m = P.model(parent, "Waterfront")
 	local Q = World.Quay
-	local steps = { { 0, 7.5 }, { -100, 5 }, { 102, 5 } }
+	local steps = { { 0, 7.5 }, { -100, 5, 1 }, { 102, 5 } }
 	local _, _, zf = quayWall(m, H, World, steps)
+	keep(-92, zf + 3.6, 7) -- the west flight along the wall
 	O.Seed(8181)
 	local function at(x: number, z: number, yaw: number?): any
 		return CF(x, (H.GetHeight(x, z)), z) * Angles(0, yaw or 0, 0)
@@ -1927,24 +1988,28 @@ local function waterfront(parent: any, H: any, World: any, keep: (number, number
 	end
 	-- the beach: rowboats pulled up on the sand, one upturned on trestles for caulking, nets
 	-- drying, a little jetty for the dinghies
-	for _, b in { { 13, 325.5, -0.35 }, { 38, 327, 0.2 }, { -104, 326, 0.45 }, { 96, 326.5, -0.55 } } do
+	for _, b in { { 13, 325.5, -0.35 }, { 38, 327, 0.2 }, { -106, 327.5, 0.45 }, { 96, 326.5, -0.55 } } do
 		rowboat(m, CF(b[1], (H.GetHeight(b[1], b[2])) + 0.12, b[2]) * Angles(0, b[3], 0) * Angles(0, 0, 0.12))
 		keep(b[1], b[2], 5.5)
 	end
 	do
-		local x, z = 110, 324
-		local g = (H.GetHeight(x, z))
-		for _, dz in { -2.6, 2.6 } do
-			O.Sawhorse(m, CF(x, (H.GetHeight(x, z + dz)), z + dz))
+		-- (laid along the beach, where the sand is level, so both trestles carry it)
+		local x, z = 110, 323
+		local g = -math.huge
+		for _, dx in { -2.6, 2.6 } do
+			g = math.max(g, (H.GetHeight(x + dx, z)))
 		end
-		rowboat(m, CF(x, g + 4.3, z) * Angles(0, 0.04, PI))
+		for _, dx in { -2.6, 2.6 } do
+			O.Sawhorse(m, CF(x + dx, g, z) * Angles(0, PI / 2, 0))
+		end
+		rowboat(m, CF(x, g + 4.2, z) * Angles(0, PI / 2 + 0.04, 0) * Angles(0, 0, PI))
 		O.Barrel(m, at(x + 3.2, z + 3.4), { Scale = 0.8, Color = rgb(70, 54, 40) })
 		keep(x, z, 6)
 	end
-	netRack(m, at(-13, 323.5, 0.08), 6.4)
-	netRack(m, at(78, 323, -0.2), 6)
+	netRack(m, H, -13, 323.5, 0.08, 6.4)
+	netRack(m, H, 89, 323, -0.1, 6)
 	keep(-13, 323.5, 4.5)
-	keep(78, 323, 4.5)
+	keep(89, 323, 4.5)
 	O.RopeCoil(m, at(-8.5, 324.5))
 	O.Anchor(m, at(60, 323.5, 0.6) * CF(0, 0.35, 0) * Angles(0, 0, PI / 2), 0.8)
 	dinghyDock(m, H, -26, zf + 0.6, 346)

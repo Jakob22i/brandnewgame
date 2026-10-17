@@ -9,7 +9,7 @@ WorldData.WaterLevel = 0
 WorldData.FloorLevel = -56 -- ocean floor
 WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on X and Z
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
-WorldData.TerrainVersion = 5 -- bump when the terrain recipe changes
+WorldData.TerrainVersion = 6 -- bump when the terrain recipe changes
 
 -- Terrain material colours as plain RGB numbers (applied with Terrain:SetMaterialColor by the
 -- TerrainGenerator; the build tools read them too)
@@ -149,7 +149,7 @@ WorldData.Paths = {
 	-- stairs up from the low ledges to the mid ledges, and on up to the tavern
 	{ Name = "ArmoryPath", Width = 7, Material = "Sand", Ramp = true, Points = { { 48, 261 }, { 45, 240 }, { 50, 214 }, { 73.7, 201.4 } }, To = "Armory" },
 	{ Name = "TradingPostPath", Width = 7, Material = "Sand", Ramp = true, Points = { { -52, 261 }, { -50, 240 }, { -54, 216 }, { -73.7, 201.4 } }, To = "TradingPost" },
-	{ Name = "TavernPath", Width = 7, Material = "Sand", Ramp = true, Points = { { -73.7, 201.4 }, { -66, 184 }, { -90, 168 }, { -78, 150 }, { -51, 153.2 } }, To = "Tavern" },
+	{ Name = "TavernPath", Width = 7, Material = "Sand", Ramp = true, Points = { { -73.7, 201.4 }, { -66, 184 }, { -80, 166 }, { -77, 158 }, { -51, 153.2 } }, To = "Tavern" },
 	-- trails from the ledges out over the island
 	{
 		Name = "LighthouseTrail", Width = 7, Material = "Sand", Ramp = true, To = "Lighthouse",
@@ -158,12 +158,14 @@ WorldData.Paths = {
 	-- a spur along the rim to the lookout deck over the falls (after its trunk, the trail)
 	{ Name = "LookoutPath", Width = 5, Material = "Sand", Ramp = true, To = "Viewpoint", Points = { { -37.375, 101 }, { -24, 103 }, { -12, 104 } } },
 	{
-		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 11 },
-		Points = { { 73.7, 201.4 }, { 100, 182 }, { 132, 172 }, { 165, 166 }, { 200, 120 }, { 230, 70 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
+		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 12 },
+		-- round the Armory's front corner and down its far side, clear of the building
+		Points = { { 73.7, 201.4 }, { 90, 211 }, { 110, 190 }, { 132, 172 }, { 165, 166 }, { 200, 120 }, { 230, 70 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
 	},
 	{
 		Name = "WestTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lookout",
-		Points = { { -73.7, 201.4 }, { -100, 184 }, { -134, 177 }, { -170, 170 }, { -205, 128 }, { -240, 70 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
+		-- round the Trading Post's front corner and down its far side, clear of the building
+		Points = { { -73.7, 201.4 }, { -90, 211 }, { -110, 190 }, { -134, 177 }, { -170, 170 }, { -205, 128 }, { -240, 70 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
 	},
 	{ Name = "EastBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { 80, 300 }, { 130, 306 }, { 186, 318 }, { 236, 330 }, { 280, 340 } } },
 	{ Name = "WestBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { -80, 300 }, { -130, 306 }, { -186, 318 }, { -236, 330 }, { -280, 340 } } },
@@ -197,7 +199,7 @@ WorldData.Streams = {
 	-- from the north-east highlands down two terraces into the lagoon
 	{ Name = "LagoonFalls", Width = 9, Depth = 2, Points = { { 214, -142 }, { 232, -124 }, { 246, -108 }, { 252, -92 }, { 263, -79 }, { 274, -66 }, { 290, -52 } } },
 	-- the town's great cascade: from a spring on the rim down three rock steps into the pool
-	{ Name = "PoolFalls", Width = 13, Depth = 2.5, Points = { { 16, 72 }, { 14, 92 }, { 12, 110 }, { 10, 126 }, { 8, 140 }, { 5, 152 }, { 2, 166 }, { 0, 180 } } },
+	{ Name = "PoolFalls", Width = 13, Depth = 2.5, Points = { { 15, 82 }, { 14, 92 }, { 12, 110 }, { 10, 126 }, { 8, 140 }, { 5, 152 }, { 2, 166 }, { 0, 180 } } },
 	-- a thinner fall from the eastern ledges into the pool
 	{ Name = "EastFalls", Width = 7, Depth = 2, Points = { { 72, 118 }, { 68, 134 }, { 60, 150 }, { 50, 164 }, { 40, 176 }, { 30, 184 } } },
 } :: { Stream }

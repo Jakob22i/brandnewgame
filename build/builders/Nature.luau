@@ -560,6 +560,37 @@ local function countParts(m: any): number
 	return n
 end
 
+-- Views of Kingshaven that the jungle keeps open: from an eye point towards a target, in a
+-- wedge (Base studs wide at the eye, widening by Spread per stud), nothing grows above the
+-- sight line from the eye to the target (less 2 studs). Low plants stay; tall trees, palms and
+-- leaf masses that would block the view do not grow there.
+local VIEWS = {
+	-- the rim lookout deck (floor 56.7): over the pool and the town to the sea
+	{ X = -6, Z = 110, Eye = 62, Tx = 0, Tz = 300, Ty = 10, Base = 14, Spread = 0.45, Near = 4 },
+	-- the head of the cascade on the rim, where the great fall starts
+	{ X = 12, Z = 84, Eye = 63, Tx = 0, Tz = 300, Ty = 10, Base = 16, Spread = 0.4, Near = 4 },
+	-- the plaza, just north of the statue: the pool and the falls between the market stalls
+	{ X = 0, Z = 246, Eye = 11.5, Tx = 0, Tz = 196, Ty = 2, Base = 22, Spread = 0.3, Near = 0 },
+}
+local function viewTop(x: number, z: number): number
+	local top = math.huge
+	for _, v in VIEWS do
+		local tx, tz = v.Tx - v.X, v.Tz - v.Z
+		local dist = math.sqrt(tx * tx + tz * tz)
+		local ux, uz = tx / dist, tz / dist
+		local dx, dz = x - v.X, z - v.Z
+		local along = dx * ux + dz * uz
+		if along < v.Near or along > dist then
+			continue
+		end
+		if math.abs(dx * uz - dz * ux) > v.Base / 2 + along * v.Spread then
+			continue
+		end
+		top = math.min(top, v.Eye + (v.Ty - v.Eye) * along / dist - 2)
+	end
+	return top
+end
+
 local function kingshavenJungle(folder: any, island: any, H: any, World: any, Noise: any, clear: { any }, stats: { [string]: number })
 	local rng = Noise.Rng(island.Seed * 7919 + 4242)
 	local pool = World.Pool
@@ -669,7 +700,7 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			continue -- keep the lighthouse yard open
 		end
 		local reach = if town then 6 * s else 7.5 * s
-		if c[5] > 0.42 or trees.hits(x, z, reach, if town then 0.72 else 0.8) or blocked(x, z, World, clear, if town then 3 else 5) then
+		if c[5] > 0.42 or h + 20 * s > viewTop(x, z) or trees.hits(x, z, reach, if town then 0.72 else 0.8) or blocked(x, z, World, clear, if town then 3 else 5) then
 			continue
 		end
 		-- full detail where people walk, lighter trees deep in the jungle
@@ -683,7 +714,7 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			break
 		end
 		local x, z, h = c[1], c[2], c[3]
-		if c[5] > 0.5 or not trees.hits(x, z, 6, 1.0) or trees.hits(x, z, 1.5, 1.0) or small.hits(x, z, 4, 1.0) or blocked(x, z, World, clear, 2.5) then
+		if c[5] > 0.5 or h + 5.5 > viewTop(x, z) or not trees.hits(x, z, 6, 1.0) or trees.hits(x, z, 1.5, 1.0) or small.hits(x, z, 4, 1.0) or blocked(x, z, World, clear, 2.5) then
 			continue
 		end
 		local m = P.model(folder, "Undergrowth")
@@ -704,7 +735,7 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 		local town = c[7] == true
 		-- town palms stand in loose clumps (a palm needs room, a clump mate may lean close)
 		local room = if town then 7.5 else 4.5
-		if c[5] > 0.42 or trees.hits(x, z, room, 1.0) or blocked(x, z, World, clear, if town then 2.5 else 4) then
+		if c[5] > 0.42 or h + 26 > viewTop(x, z) or trees.hits(x, z, room, 1.0) or blocked(x, z, World, clear, if town then 2.5 else 4) then
 			continue
 		end
 		local ps = if h > 9 and not town then rng:Range(1.2, 1.5) else rng:Range(0.9, 1.3)
@@ -735,7 +766,7 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 		local R = if town then rng:Range(3.2, 5.2) else rng:Range(7, 11)
 		-- (the jungle thins out far from the town, on the far side of the island)
 		local spread = if not town and (x - hx) ^ 2 + (z - hz) ^ 2 > FAR_JUNGLE * FAR_JUNGLE then 1.45 else 0.8
-		if c[5] > 0.45 or trees.hits(x, z, R * 1.1, spread) or blocked(x, z, World, clear, if town then R * 0.6 + 1 else R * 0.8) then
+		if c[5] > 0.45 or h + R * 1.45 > viewTop(x, z) or trees.hits(x, z, R * 1.1, spread) or blocked(x, z, World, clear, if town then R * 0.6 + 1 else R * 0.8) then
 			continue
 		end
 		Nature.Thicket(folder, V(x, h - (if town then 0.6 else 0), z), rng, R)
@@ -752,6 +783,9 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			continue
 		end
 		local size = rng:Range(3, 5.5)
+		if blocked(x, z, World, clear, size * 0.7) then
+			continue -- (its whole footprint stays off the paths)
+		end
 		local m = Nature.SlabStack(folder, CF(x, h - size * 0.35, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.9), rng, Nature.SANDSTONE, "Sandstone", rng:Next() < 0.5, true)
 		used.Rock += countParts(m)
 		small.add(x, z, 3)
@@ -776,6 +810,8 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			m = Nature.RedPlant(folder, V(x, h - 0.2, z), rng, s)
 		elseif r < 0.78 then
 			m = Nature.Hibiscus(folder, V(x, h - 0.4, z), rng, s)
+		elseif h + 4 * s > viewTop(x, z) then
+			m = Nature.Fern(folder, V(x, h - 0.2, z), rng, s) -- (a low fern where a bush would block a view)
 		else
 			m = Nature.Bush(folder, V(x, h - 0.5, z), rng, s)
 		end
@@ -883,6 +919,10 @@ function Nature.Build(parent: any, H: any, World: any, Noise: any, clear: { any 
 			local h = H.GetHeight(x, z)
 			if h > -3 and ok(x, z, 3) then
 				local size = if island.Kind == "Rocky" then rng:Range(7, 14) else rng:Range(5, 10)
+				-- (a big rock keeps its whole footprint off the paths)
+				if not ok(x, z, size * 0.65) then
+					continue
+				end
 				local cf = CF(x, h - size * 0.25, z) * Angles(0, rng:Range(0, math.pi * 2), 0)
 				Nature.SlabStack(folder, cf, size * 1.3, size, size * rng:Range(0.5, 0.9), rng, palette, rockMat, h > 4 and rng:Next() < 0.5)
 				placed += 1

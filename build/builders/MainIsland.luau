@@ -53,7 +53,7 @@ end
 -- Stacked, rounded sandstone slabs on a cliff face. foot = cliff foot (on the lower ground),
 -- n = outward (downhill) direction, yb/yt = bottom/top heights, run = horizontal run of the
 -- cliff, capColor = colour of the grass on the terrace above (the cap blends into it).
-local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, yt: number, run: number, width: number, capColor: any, noCap: boolean?): number
+local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, yt: number, run: number, width: number, capColor: any, noCap: boolean?, H: any?): number
 	local m = P.model(parent, "CliffRock")
 	local cf = frame(V(foot.X, yb, foot.Z), n)
 	local height = yt - yb
@@ -64,6 +64,7 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 	local maxOut = 0
 	local count = 0
 	local shift = 0
+	local layerOut = {} -- { top of the layer, how far its face juts out }
 	for i = 1, layers do
 		local th = layerT * rng:Range(0.85, 1.15)
 		if i == layers then
@@ -87,12 +88,24 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 			count += Nature.RoundSlab(m, bcf, bw, th * rng:Range(0.7, 0.92), 5 + bOut, Nature.Shade(color, rng:Range(0.92, 1.06)), "Sandstone", true)
 		end
 		y += th
+		table.insert(layerOut, { y, out })
 	end
 	-- a rounded lip of grass hanging over the edge, flush with the terrace above (low steps
 	-- keep their bare rounded stone: a flat grass plate on them reads as a floating slab)
 	local capOut = maxOut + 0.4
 	-- (nor do the lower tiers of a stepped wall, where more cliff rises right behind the lip)
-	if height >= 13 and not noCap then
+	-- (and only where the terrace really is up there behind the lip: a rock filling a slope
+	-- that falls away behind it gets no grass plate halfway up the wall)
+	local terraceBehind = true
+	if H then
+		for _, back in { 5.5, 8 } do
+			local q = cf * V(shift * 0.5, 0, back)
+			if H.GetHeight(q.X, q.Z) < yt - 1.5 then
+				terraceBehind = false
+			end
+		end
+	end
+	if height >= 13 and not noCap and terraceBehind then
 		local capW = width * rng:Range(0.9, 1.0)
 		local capD = capOut + 4
 		local capCF = cf * CF(shift * 0.5, height - 0.15, -capOut + capD / 2) * Angles(0, rng:Range(-0.04, 0.04), 0)
@@ -114,7 +127,15 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 		for k = 1, pieces do
 			local ph = len / pieces * 1.5
 			local pw = cw * (1 - (k - 1) * 0.4)
-			Nature.Blob(m, V(pw, ph, 1.1), cf * CF(cx + rng:Range(-0.5, 0.5), y - ph / 2, -capOut + 0.55 + k * 0.1), { Name = "Ivy", Mat = "LeafyGrass", Color = Nature.Shade(color, 1 - (k - 1) * 0.06) })
+			-- hugging the face of the layer it hangs from (deep enough that its back sinks in)
+			local faceOut = layerOut[#layerOut][2]
+			for _, lo in layerOut do
+				if lo[1] >= y - 0.5 then
+					faceOut = lo[2]
+					break
+				end
+			end
+			Nature.Blob(m, V(pw, ph, 2.5), cf * CF(cx + rng:Range(-0.5, 0.5), y - ph / 2, -faceOut + 0.3), { Name = "Ivy", Mat = "LeafyGrass", Color = Nature.Shade(color, 1 - (k - 1) * 0.06) })
 			y -= len / pieces
 			count += 1
 		end
@@ -266,6 +287,30 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 				end
 			end
 		end
+		-- nor in the pool's outlet channel or a stream bed (the water must run, and swimmers
+		-- get from the pool to the sea)
+		local function nearWater(pts: { { number } }, width: number): boolean
+			for i = 1, #pts - 1 do
+				local a, b = pts[i], pts[i + 1]
+				local vx, vz = b[1] - a[1], b[2] - a[2]
+				local len2 = vx * vx + vz * vz
+				local t = if len2 > 0 then math.clamp(((x - a[1]) * vx + (z - a[2]) * vz) / len2, 0, 1) else 0
+				local wa, wb = a[3] or width, b[3] or width
+				local reach = (wa + (wb - wa) * t) / 2 + 1
+				if (a[1] + vx * t - x) ^ 2 + (a[2] + vz * t - z) ^ 2 < reach * reach then
+					return true
+				end
+			end
+			return false
+		end
+		if World.PoolCut and nearWater(World.PoolCut.Points, World.PoolCut.Width) then
+			return true
+		end
+		for _, stream in World.Streams or {} do
+			if nearWater(stream.Points, stream.Width) then
+				return true
+			end
+		end
 		return false
 	end
 	local spots = {}
@@ -403,7 +448,7 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 		local capRgb = World.TerrainColors[if capMat == "Grass" or capMat == "Sand" then capMat else "LeafyGrass"]
 		local capColor = rgb(capRgb[1], capRgb[2], capRgb[3])
 		local tier = H.GetHeight(tx - nx * 5, tz - nz * 5) > yt + 3
-		local n = cliffRock(folder, rng, V(fx + nx * 0.8, 0, fz + nz * 0.8), V(nx, 0, nz), yb, yt, s.Run + 0.8, width, capColor, tier)
+		local n = cliffRock(folder, rng, V(fx + nx * 0.8, 0, fz + nz * 0.8), V(nx, 0, nz), yb, yt, s.Run + 0.8, width, capColor, tier, H)
 		if coast then
 			coastParts += n
 		else
@@ -504,12 +549,14 @@ local function buildTownRocks(model: any, H: any, World: any, rng: any, clear: {
 		local x, z = pool.X + pool.Rx * f * math.cos(a), pool.Z + pool.Rz * f * math.sin(a)
 		local h = H.GetHeight(x, z)
 		local size = rng:Range(5, 9)
-		count(Nature.SlabStack(folder, CF(x, h - 0.5, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, -h + size * rng:Range(0.3, 0.6), rng, Nature.SANDSTONE, "Sandstone", rng:Next() < 0.4, false))
+		-- wave-washed stone at the waterline: no grass plate on top (the draw keeps the sequence)
+		local _ = rng:Next()
+		count(Nature.SlabStack(folder, CF(x, h - 0.5, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, -h + size * rng:Range(0.3, 0.6), rng, Nature.SANDSTONE, "Sandstone", false, false))
 	end
 	-- the rock island
 	local ix, iz = pool.X - 13, pool.Z + 3
 	local ih = H.GetHeight(ix, iz)
-	local isle, top = Nature.SlabStack(folder, CF(ix, ih - 0.5, iz) * Angles(0, 0.6, 0), 12, 9, -ih + 3.5, rng, Nature.SANDSTONE, "Sandstone", true, true)
+	local isle, top = Nature.SlabStack(folder, CF(ix, ih - 0.5, iz) * Angles(0, 0.6, 0), 12, 9, -ih + 3.5, rng, Nature.SANDSTONE, "Sandstone", false, true)
 	count(isle)
 	count(Nature.Palm(folder, V(ix + 1, ih - 0.5 + top - 0.4, iz), rng, 0.8, 0))
 	-- the harbour beach below the quay wall: boulders where the wall ends, against the banks of
@@ -517,7 +564,8 @@ local function buildTownRocks(model: any, H: any, World: any, rng: any, clear: {
 	for _, spec in { { -121, 321, 10 }, { 123, 321, 10 }, { 58.5, 325, 5 }, { 82, 324.5, 5.5 }, { -82, 324.5, 5 }, { -34.5, 327, 6 }, { -113, 333, 6 } } do
 		local x, z, size = spec[1], spec[2], spec[3]
 		local h = H.GetHeight(x, z)
-		local m, rtop = Nature.SlabStack(folder, CF(x, h - 1.2, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.85), rng, Nature.SANDSTONE, "Sandstone", true, true)
+		-- (only the big ones at the ends of the wall, under their palms, carry grass)
+		local m, rtop = Nature.SlabStack(folder, CF(x, h - 1.2, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.85), rng, Nature.SANDSTONE, "Sandstone", size >= 9, true)
 		count(m)
 		if size >= 9 then
 			count(Nature.Palm(folder, V(x, h - 1.2 + rtop - 0.3, z), rng, 0.9, 0))
@@ -620,7 +668,35 @@ end
 -- line between the ends (each a solid block reaching down into the ramp, so no gaps show), a
 -- stringer along each side, a hidden walking ramp through the treads and a railing on every
 -- side that is open to a drop (none against the rock of a cutting).
-local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width: number, riseStep: number, wooden: boolean): number
+-- The walking footprints of every flight on the island (filled in before any is built), so
+-- the railing of one flight never stands in the walkway of the next one at a switchback.
+type Footprint = { Lo: any, Dir: any, Rgt: any, Len: number, Half: number, Y: number }
+local footprints: { Footprint } = {}
+
+local function inOtherFlight(p: any, own: Footprint?): boolean
+	for _, f in footprints do
+		if f == own or math.abs(p.Y - f.Y) > 8 then
+			continue
+		end
+		local r = flat(p - f.Lo)
+		local along = r:Dot(f.Dir)
+		if along >= -0.6 and along <= f.Len + 0.6 and math.abs(r:Dot(f.Rgt)) <= f.Half + 0.5 then
+			return true
+		end
+	end
+	return false
+end
+
+local function footprintOf(a: any, b: any, width: number): Footprint
+	local lo, hi = a, b
+	if b.Y < a.Y then
+		lo, hi = b, a
+	end
+	local d = flat(hi - lo)
+	return { Lo = lo, Dir = d.Unit, Rgt = d.Unit:Cross(UP), Len = d.Magnitude, Half = width / 2, Y = (lo.Y + hi.Y) / 2 }
+end
+
+local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width: number, riseStep: number, wooden: boolean, own: Footprint?): number
 	local lo, hi = a, b
 	if b.Y < a.Y then
 		lo, hi = b, a
@@ -651,7 +727,7 @@ local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width:
 	count += 1
 	for _, sd in { -1, 1 } do
 		local off = rgt * sd * (half + 0.1)
-		P.plank(m, lo + off + V(0, h * 0.5 - 0.45, 0) - dir * 0.2, hi + off + V(0, h * 0.5 - 0.45, 0) + dir * 0.1, 0.5, 1.2, { Name = "Stringer", Mat = "Wood", Color = DARK_WOOD })
+		P.plank(m, lo + off + V(0, h * 0.5 - 0.45, 0) - dir * 0.2, hi + off + V(0, h * 0.5 - 0.45, 0) + dir * 0.1, 0.5, 1.2, { Name = "Stringer", Mat = "Wood", Color = DARK_WOOD, CanCollide = false })
 		count += 1
 		-- railing posts where this side is open (the ground beside the flight is not a wall)
 		local posts = math.max(1, math.ceil(len / (if wooden then 3.6 else 7.5)))
@@ -661,7 +737,8 @@ local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width:
 			local p = lineAt(t) + off + V(0, h * 0.5, 0)
 			local side = lineAt(t) + rgt * sd * (half + 2.5)
 			local wall = H.GetHeight(side.X, side.Z) > lineAt(t).Y + 2.2
-			if wall then
+			-- no post (and no rail into it) inside the walkway of a neighbouring flight
+			if wall or inOtherFlight(p, own) then
 				last = nil
 				continue
 			end
@@ -687,13 +764,14 @@ end
 
 -- Finds the steep stretches of a ramp path (at 1-stud samples) and builds a straight flight on
 -- each piece of them between two path points. Returns the covered stretches { s0, s1 }.
-function stairFlights(folder: any, H: any, World: any, path: any, skip: { [number]: boolean }, rng: any, clear: { any }): { { number } }
+type Flight = { A: any, B: any, S0: number, S1: number, InTown: boolean, Foot: Footprint }
+local function planFlights(H: any, World: any, path: any, skip: { [number]: boolean }): { Flight }
+	local flights = {}
 	local samples = {}
 	walkPath(path.Points, 1, skip, function(x, z, dx, dz, seg, s)
 		table.insert(samples, { X = x, Z = z, Seg = seg, S = s, H = H.GetHeight(x, z) })
 	end)
 	local town = World.Town
-	local covered = {}
 	local runs = {}
 	local cur = nil
 	for k = 2, #samples - 1 do
@@ -727,12 +805,27 @@ function stairFlights(folder: any, H: any, World: any, path: any, skip: { [numbe
 				continue
 			end
 			local inTown = (a.X - town.X) ^ 2 + (a.Z - town.Z) ^ 2 < (town.Radius + 30) ^ 2
-			stairFlight(folder, H, rng, pa, pb, path.Width, if inTown then 0.8 else 1.35, inTown)
-			table.insert(covered, { a.S, b.S })
-			for t = 0, 1, 0.25 do
-				local p = pa:Lerp(pb, t)
-				table.insert(clear, { X = p.X, Z = p.Z, R = path.Width / 2 + 2 })
+			table.insert(flights, { A = pa, B = pb, S0 = a.S, S1 = b.S, InTown = inTown, Foot = footprintOf(pa, pb, path.Width) })
+		end
+	end
+	return flights
+end
+
+function stairFlights(folder: any, H: any, World: any, path: any, skip: { [number]: boolean }, rng: any, clear: { any }): { { number } }
+	local covered = {}
+	for _, f in planFlights(H, World, path, skip) do
+		-- the same footprint as the one registered up front (so it is not its own neighbour)
+		local own = nil
+		for _, g in footprints do
+			if (g.Lo - f.Foot.Lo).Magnitude < 0.01 and math.abs(g.Len - f.Foot.Len) < 0.01 then
+				own = g
 			end
+		end
+		stairFlight(folder, H, rng, f.A, f.B, path.Width, if f.InTown then 0.8 else 1.35, f.InTown, own)
+		table.insert(covered, { f.S0, f.S1 })
+		for t = 0, 1, 0.25 do
+			local p = f.A:Lerp(f.B, t)
+			table.insert(clear, { X = p.X, Z = p.Z, R = path.Width / 2 + 2 })
 		end
 	end
 	return covered
@@ -746,6 +839,22 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 	local lights = P.folder(folder, "Lanterns")
 	local town = World.Town
 	local STEP = 2.2
+	-- every flight's footprint first, so each railing knows its neighbours
+	table.clear(footprints)
+	for _, path in World.Paths do
+		if path.Ramp then
+			local skip = {}
+			for _, i in path.Bridges or {} do
+				skip[i] = true
+			end
+			for _, i in path.Planks or {} do
+				skip[i] = true
+			end
+			for _, f in planFlights(H, World, path, skip) do
+				table.insert(footprints, f.Foot)
+			end
+		end
+	end
 	for _, path in World.Paths do
 		local skip = {}
 		for _, i in path.Bridges or {} do
@@ -1393,9 +1502,10 @@ local function signpost(parent: any, pos: any, boards: { { any } }, rng: any)
 		local centre = pos + V(0, y, 0) + d * (len / 2 + 0.35)
 		local normal = d:Cross(UP)
 		local cf = P.CFrame.fromMatrix(centre, d, UP, normal) * Angles(0, 0, tilt)
-		local board = P.part(m, { Name = "ArrowBoard", Size = V(len, 1.05, 0.3), CFrame = cf, Mat = "WoodPlanks", Color = pick(rng, PLANKS) })
+		-- the boards reach out over the paths at head height: walk-through, never a wall
+		local board = P.part(m, { Name = "ArrowBoard", Size = V(len, 1.05, 0.3), CFrame = cf, Mat = "WoodPlanks", Color = pick(rng, PLANKS), CanCollide = false, CanQuery = false })
 		-- the arrow point: a square turned 45 degrees at the end of the board
-		P.part(m, { Name = "ArrowTip", Size = V(0.74, 0.74, 0.3), CFrame = cf * CF(len / 2, 0, 0) * Angles(0, 0, math.pi / 4), Mat = "WoodPlanks", Color = board.Color })
+		P.part(m, { Name = "ArrowTip", Size = V(0.74, 0.74, 0.3), CFrame = cf * CF(len / 2, 0, 0) * Angles(0, 0, math.pi / 4), Mat = "WoodPlanks", Color = board.Color, CanCollide = false, CanQuery = false })
 		for _, face in { "Front", "Back" } do
 			P.surfaceText(board, face, text, { Name = "Text" .. face, Color = SIGN_TEXT, StrokeColor = rgb(50, 30, 16), StrokeTransparency = 0.3, PixelsPerStud = 40, Padding = 0.06 })
 		end
@@ -1438,8 +1548,8 @@ local function buildSignposts(model: any, H: any, World: any, rng: any, clear: {
 		{ At = { -14, 270 }, From = { World.Town.X, World.Town.Z }, To = { "Shipwright", "Merchant", "Armory", "TradingPost", "Tavern", "Piers" } },
 		{ At = { -57, 268 }, To = { "Merchant", "TradingPost", "Tavern", "Square" } },
 		{ At = { 40, 268 }, To = { "Shipwright", "Armory", "Lagoon", "Square" } },
-		{ At = { -64, 210 }, To = { "TradingPost", "Tavern", "Lighthouse", "Lookout", "Square" } },
-		{ At = { 64, 210 }, To = { "Armory", "Lagoon", "Square" } },
+		{ At = { -46, 224 }, To = { "TradingPost", "Tavern", "Lighthouse", "Lookout", "Square" } },
+		{ At = { 54, 222 }, To = { "Armory", "Lagoon", "Square" } },
 		{ At = { -40, 160 }, To = { "Tavern", "Lighthouse", "Square" } },
 		{ At = { 88, 292 }, To = { "Beach", "Piers", "Square" } },
 		{ At = { -88, 292 }, To = { "Beach", "Piers", "Square" } },
