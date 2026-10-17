@@ -1961,11 +1961,13 @@ function Town.Build(parent: any, H: any, World: any)
 		table.insert(clear, { X = x, Z = z, R = r })
 	end
 	-- a rectangle around local (lx0..lx1, lz0..lz1) of a frame at (x, z) turned by yaw
-	local function keepRect(x: number, z: number, yaw: number, lx0: number, lx1: number, lz0: number, lz1: number)
+	-- (solid = the footprint of a building: even the cliff rocks of the town bowl, which hug the
+	-- cliff feet right behind the houses, keep out of it)
+	local function keepRect(x: number, z: number, yaw: number, lx0: number, lx1: number, lz0: number, lz1: number, solid: boolean?)
 		local c, s = math.cos(yaw), math.sin(yaw)
 		local mx, mz = (lx0 + lx1) / 2, (lz0 + lz1) / 2
 		local hx, hz = (lx1 - lx0) / 2, (lz1 - lz0) / 2
-		table.insert(clear, { X = x + mx * c + mz * s, Z = z - mx * s + mz * c, R = math.sqrt(hx * hx + hz * hz), Hx = hx, Hz = hz, C = c, S = s })
+		table.insert(clear, { X = x + mx * c + mz * s, Z = z - mx * s + mz * c, R = math.sqrt(hx * hx + hz * hz), Hx = hx, Hz = hz, C = c, S = s, Solid = solid })
 	end
 	local function ground(x: number, z: number): number
 		return (H.GetHeight(x, z))
@@ -1977,6 +1979,7 @@ function Town.Build(parent: any, H: any, World: any)
 	for _, shop in World.Shops do
 		buildShop(town, shop, H)
 		keepRect(shop.X, shop.Z, shop.Yaw, -shop.Width / 2 - 1.5, shop.Width / 2 + 1.5, -shop.Depth / 2 - 1.5, shop.Depth / 2 + 15)
+		keepRect(shop.X, shop.Z, shop.Yaw, -shop.Width / 2 - 1, shop.Width / 2 + 1, -shop.Depth / 2 - 1, shop.Depth / 2 + 7, true)
 		if shop.FrontX and shop.FrontZ then
 			keep(shop.FrontX, shop.FrontZ, 6)
 		end
@@ -2036,7 +2039,7 @@ function Town.Build(parent: any, H: any, World: any)
 	}
 	for _, c in cottages do
 		cottage(town, c, H)
-		keepRect(c.X, c.Z, c.Yaw, -7.5, 7.5, -6.5, 12)
+		keepRect(c.X, c.Z, c.Yaw, -7.5, 7.5, -6.5, 12, true)
 	end
 
 	-- Welcome arch on the street to the piers
@@ -2081,7 +2084,7 @@ function Town.Build(parent: any, H: any, World: any)
 	campfire(town, 60, 128, H)
 	keep(60, 128, 9)
 	garden(town, 92, 226, -0.4, H)
-	keepRect(92, 226, -0.4, -9, 9, -7, 7)
+	keepRect(92, 226, -0.4, -9, 9, -7, 7, true)
 
 	-- A lookout tower on the eastern headland, over the harbour
 	watchtower(town, 150, 270, -0.3, H)

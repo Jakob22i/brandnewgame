@@ -53,7 +53,7 @@ end
 -- Stacked, rounded sandstone slabs on a cliff face. foot = cliff foot (on the lower ground),
 -- n = outward (downhill) direction, yb/yt = bottom/top heights, run = horizontal run of the
 -- cliff, capColor = colour of the grass on the terrace above (the cap blends into it).
-local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, yt: number, run: number, width: number, capColor: any): number
+local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, yt: number, run: number, width: number, capColor: any, noCap: boolean?): number
 	local m = P.model(parent, "CliffRock")
 	local cf = frame(V(foot.X, yb, foot.Z), n)
 	local height = yt - yb
@@ -91,7 +91,8 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 	-- a rounded lip of grass hanging over the edge, flush with the terrace above (low steps
 	-- keep their bare rounded stone: a flat grass plate on them reads as a floating slab)
 	local capOut = maxOut + 0.4
-	if height >= 13 then
+	-- (nor do the lower tiers of a stepped wall, where more cliff rises right behind the lip)
+	if height >= 13 and not noCap then
 		local capW = width * rng:Range(0.9, 1.0)
 		local capD = capOut + 4
 		local capCF = cf * CF(shift * 0.5, height - 0.15, -capOut + capD / 2) * Angles(0, rng:Range(-0.04, 0.04), 0)
@@ -228,6 +229,45 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 	local town = World.Town
 	local lagoon = World.Lagoon
 	local pool = World.Pool
+	-- the town bowl (the basin, its ledges and the walls around it) is dressed first, and more
+	-- densely: there the rocks hug the cliff feet right behind the buildings, so only the solid
+	-- footprints, the cores of the keep-clear zones and the paths themselves keep them out
+	local basin = World.Basin
+	local function inBowl(x: number, z: number): boolean
+		return z < 300 and (x - basin.X) ^ 2 + (z - basin.Z) ^ 2 < (basin.Radius + 60) ^ 2
+	end
+	local function blockedCore(x: number, z: number): boolean
+		for _, c in clear do
+			local dx, dz = x - c.X, z - c.Z
+			if c.Hx then
+				if c.Solid and dx * dx + dz * dz < c.R * c.R then
+					local lx = dx * c.C - dz * c.S
+					local lz = dx * c.S + dz * c.C
+					if math.abs(lx) < c.Hx and math.abs(lz) < c.Hz then
+						return true
+					end
+				end
+			else
+				local r = c.Core or c.R * 0.6
+				if dx * dx + dz * dz < r * r then
+					return true
+				end
+			end
+		end
+		for _, path in World.Paths do
+			local reach = path.Width / 2 + 1.5
+			for i = 1, #path.Points - 1 do
+				local a, b = path.Points[i], path.Points[i + 1]
+				local vx, vz = b[1] - a[1], b[2] - a[2]
+				local len2 = vx * vx + vz * vz
+				local t = if len2 > 0 then math.clamp(((x - a[1]) * vx + (z - a[2]) * vz) / len2, 0, 1) else 0
+				if (a[1] + vx * t - x) ^ 2 + (a[2] + vz * t - z) ^ 2 < reach * reach then
+					return true
+				end
+			end
+		end
+		return false
+	end
 	local spots = {}
 	for _, c in candidates do
 		local fx, fz, fh, dDown = walk(c[1], c[2], c[3], c[4], 1)
@@ -236,7 +276,7 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 		if height >= 4 then
 			-- the town's ledges and the pool walls come first (they frame every view of the town)
 			local dPool = math.sqrt((c[1] - pool.X) ^ 2 + (c[2] - pool.Z - 30) ^ 2)
-			local townScore = if dPool < 190 then 40 - dPool * 0.08 else 0
+			local townScore = (if dPool < 190 then 40 - dPool * 0.08 else 0) + (if inBowl(c[1], c[2]) then 40 else 0)
 			table.insert(spots, { Fx = fx, Fz = fz, Fh = fh, Th = th, Run = dDown + dUp, Nx = c[3], Nz = c[4], Mx = (fx + tx) / 2, Mz = (fz + tz) / 2, Height = height, Score = math.min(height, 16) + c[5] * 12 + townScore + (if nearPath(c[1], c[2]) then 14 else 0) + (if (c[1] - town.X) ^ 2 + (c[2] - town.Z) ^ 2 < (town.Radius + 130) ^ 2 then 10 else 0) + (if lagoon and (c[1] - lagoon.X) ^ 2 + (c[2] - lagoon.Z) ^ 2 < (lagoon.Radius + 40) ^ 2 then 16 else 0) })
 		end
 	end
@@ -279,18 +319,26 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 	end
 	local coastParts = 0
 	for _, s in spots do
-		local coast = s.Fh < 2
+		-- (the walls of the town pool count as the bowl, not as sea cliffs)
+		local coast = s.Fh < 2 and not inBowl(s.Mx, s.Mz)
 		if (coast and (coastParts >= COAST_BUDGET or s.Height < 9)) or (not coast and (parts >= CLIFF_BUDGET or s.Height < 6)) then
 			continue
 		end
 		-- the towering walls get the biggest blocks (fewer, larger pieces)
 		local width = if s.Height > 34 then rng:Range(32, 42) elseif s.Height > 20 then rng:Range(24, 32) else rng:Range(15, 23)
+		local bowlSpot = not coast and inBowl(s.Mx, s.Mz)
+		local spacing = if bowlSpot then 0.36 else 0.42
+		-- (rocks on different tiers of a stepped wall do not crowd each other: only those whose
+		-- height ranges overlap by more than a third count)
 		local tooClose = false
 		for _, p in placed do
-			local need = (width + p[3]) * 0.42
+			local need = (width + p[3]) * spacing
 			if (p[1] - s.Mx) ^ 2 + (p[2] - s.Mz) ^ 2 < need * need then
-				tooClose = true
-				break
+				local overlap = math.min(s.Th, p[5] or math.huge) - math.max(s.Fh, p[4] or -math.huge)
+				if overlap > math.min(s.Th - s.Fh, (p[5] or math.huge) - (p[4] or -math.huge)) / 3 then
+					tooClose = true
+					break
+				end
 			end
 		end
 		if tooClose then
@@ -300,31 +348,47 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 		local nx, nz = s.Nx, s.Nz
 		local lx, lz = -nz, nx
 		local depth = s.Run + 7
-		local blockedHere = false
-		for _, a in { -0.5, 0, 0.5 } do
-			for _, b in { -0.5, 0.2, 1 } do
-				local px = s.Fx + lx * a * width - nx * b * depth
-				local pz = s.Fz + lz * a * width - nz * b * depth
-				if Nature.Blocked(px, pz, World, clear, 3) then
-					blockedHere = true
+		-- (in the bowl only the face and its top edge are tested, in studs from the foot: the
+		-- rest of the rock is buried in the cliff; where the full width does not fit, beside a
+		-- waterfall or a path, a narrower rock shifted along the cliff is tried)
+		local along = if bowlSpot then { -0.5, -0.25, 0, 0.25, 0.5 } else { -0.5, 0, 0.5 }
+		local reach = if bowlSpot then { -1.5, s.Run * 0.5, s.Run + 2 } else { -0.5 * depth, 0.2 * depth, depth }
+		local tries = if bowlSpot then { { 1, 0 }, { 0.6, 0 }, { 0.6, 0.25 }, { 0.6, -0.25 }, { 0.4, 0.38 }, { 0.4, -0.38 } } else { { 1, 0 } }
+		local full = width
+		local shift = nil
+		for _, try in tries do
+			local w, sh = full * try[1], full * try[2]
+			local blockedHere = false
+			for _, a in along do
+				for _, b in reach do
+					local px = s.Fx + lx * (a * w + sh) - nx * b
+					local pz = s.Fz + lz * (a * w + sh) - nz * b
+					if if bowlSpot then blockedCore(px, pz) else Nature.Blocked(px, pz, World, clear, 3) then
+						blockedHere = true
+						break
+					end
+				end
+				if blockedHere then
 					break
 				end
 			end
-			if blockedHere then
+			if not blockedHere then
+				width, shift = w, sh
 				break
 			end
 		end
-		if blockedHere then
+		if shift == nil then
 			continue
 		end
+		local fx, fz = s.Fx + lx * shift, s.Fz + lz * shift
 		-- the lowest ground along the foot (so the slabs never float) and the lowest top
 		-- edge along the width (so they never stick up out of the terrace)
 		local yb = s.Fh
 		local yt = s.Th
-		local tx, tz = s.Fx - nx * (s.Run + 2.5), s.Fz - nz * (s.Run + 2.5)
+		local tx, tz = fx - nx * (s.Run + 2.5), fz - nz * (s.Run + 2.5)
 		local lopsided = false
 		for _, a in { -0.45, 0.45 } do
-			yb = math.min(yb, (H.GetHeight(s.Fx + lx * a * width + nx * 1.5, s.Fz + lz * a * width + nz * 1.5)))
+			yb = math.min(yb, (H.GetHeight(fx + lx * a * width + nx * 1.5, fz + lz * a * width + nz * 1.5)))
 			local top = H.GetHeight(tx + lx * a * width, tz + lz * a * width)
 			if top < s.Th - 3 then
 				lopsided = true
@@ -338,14 +402,15 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 		local capMat = H.GetMaterial(tx, tz, s.Th, 0, island)
 		local capRgb = World.TerrainColors[if capMat == "Grass" or capMat == "Sand" then capMat else "LeafyGrass"]
 		local capColor = rgb(capRgb[1], capRgb[2], capRgb[3])
-		local n = cliffRock(folder, rng, V(s.Fx + nx * 0.8, 0, s.Fz + nz * 0.8), V(nx, 0, nz), yb, yt, s.Run + 0.8, width, capColor)
+		local tier = H.GetHeight(tx - nx * 5, tz - nz * 5) > yt + 3
+		local n = cliffRock(folder, rng, V(fx + nx * 0.8, 0, fz + nz * 0.8), V(nx, 0, nz), yb, yt, s.Run + 0.8, width, capColor, tier)
 		if coast then
 			coastParts += n
 		else
 			parts += n
 		end
 		count += 1
-		table.insert(placed, { s.Mx, s.Mz, width })
+		table.insert(placed, { s.Mx + lx * shift, s.Mz + lz * shift, width, s.Fh, s.Th })
 	end
 	return parts + coastParts, count
 end
@@ -1021,7 +1086,7 @@ local function buildStreams(model: any, H: any, World: any, rng: any, clear: { a
 		end)
 		for k, smp in samples do
 			if k % 3 == 1 then
-				table.insert(clear, { X = smp.X, Z = smp.Z, R = stream.Width / 2 + 3 })
+				table.insert(clear, { X = smp.X, Z = smp.Z, R = stream.Width / 2 + 3, Core = stream.Width / 2 + 1.5 })
 			end
 		end
 		local level = stream.Depth * 0.55 -- water surface above the bed
