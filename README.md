@@ -33,7 +33,7 @@ Serveren hopper da over genereringen (den sjekker versjonsnummeret på Terrain).
 
 | Del | Hva du kan gjøre |
 | --- | --- |
-| **Kingshaven** (hovedøya) | Trygg havn uten PvP. Piratutpost i tre med Shipwright, Merchant, Armory, Tavern og Trading Post rundt et torg med gullstatue av kongen. Klipper og steinterrasser, tett jungel, fossefall, utsiktstårn og fyrtårn. Sandstier med plankebiter og veiskilt fører til hver butikk. |
+| **Kingshaven** (hovedøya) | Trygg havn uten PvP. En Sea of Thieves-aktig piratutpost rundt et turkis basseng med fossefall i flere trinn. Butikkene står på steinhyller i ulike høyder (Shipwright og Merchant nede ved vannet, Armory og Trading Post på midthylla, tavernaen høyt oppe), forbundet med sandstier, plankestrapper med rekkverk og en hengebru. Kai med kaimur, robåter og last, høye sandsteinsklipper og tett jungel rundt byen. |
 | **Butikkfolk** | En kar i hver butikk du snakker med (E): Captain Barnaby (Shipwright), Madame Coralie (Merchant), Old Ironhook (Armory), Rosie the Barkeep (Tavern) og Jules the Trader (Trading Post). Dialog med valg (mus, trykk eller tastene 1–4), tips og rykter. |
 | **Skip** | Sloop (gratis), Brigantine (3 500 g), Galleon (10 000 g) – bygd med buet, plankekledd skrog, kastell, akterspeil, galionsfigur og bølgende seil. Kjøp og sjøsett hos Shipwright. |
 | **Seil og symboler** | Du starter med svarte seil uten symbol. Hos Shipwright (fanen *Sails & Symbols*) kjøper du hvite eller røde seil og velger blant mange symboler (Jolly Roger, kryssede sabler, anker, hai, spøkelse ...). |
@@ -69,7 +69,7 @@ Mobil: det er knapper på skjermen for ror, kanon og å slippe kister.
 ```
 place/base.rbxl            Den opprinnelige plassen din (Baseplate-malen)
 KingOfThePirates.rbxl      Det ferdige spillet (generert)
-previews/                  Forhåndsbilder av øya, byen, butikk og skip
+previews/                  Forhåndsbilder av havna, fossen, byen, øya og skipene
 src/                       Alle scripts (Rojo-filnavn: .server.luau / .client.luau / .luau)
   ReplicatedFirst/         Lasteskjerm
   ReplicatedStorage/Shared Config (priser, skip, våpen...), WorldData (øyer), Heightmap, Noise, Util, Net
