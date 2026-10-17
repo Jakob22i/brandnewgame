@@ -647,7 +647,7 @@ local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width:
 	end
 	-- the walking surface: a hidden slab whose top runs just under the tread nosings
 	local mid = (lo + hi) / 2
-	P.part(m, { Name = "StairRamp", Size = V(width, 0.6, (hi - lo).Magnitude + 0.4), CFrame = P.lookAt(mid, hi) * CF(0, -0.05, 0), Transparency = 1, Mat = "Wood", Color = DARK_WOOD, CanQuery = false })
+	P.part(m, { Name = "StairRamp", Size = V(width, 0.6, (hi - lo).Magnitude + 0.4), CFrame = P.lookAt(mid, hi) * CF(0, -0.05, 0), Transparency = 1, Mat = "Wood", Color = DARK_WOOD })
 	count += 1
 	for _, sd in { -1, 1 } do
 		local off = rgt * sd * (half + 0.1)

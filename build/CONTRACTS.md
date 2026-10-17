@@ -38,6 +38,17 @@ computed `FrontX/FrontZ` where the path should arrive. The town builder must cre
   ProximityPrompt named `ShopPrompt` (the server connects it; the client then opens a dialogue)
 - for the Merchant: a part tagged `SellCounter` with a ProximityPrompt `SellPrompt`
 
+## Kingshaven layout notes (`WorldData.Quay`, keep-clear zones)
+
+- `WorldData.Quay` drops the harbour level to a strip of beach in front of the quay wall
+  (`Heightmap`), except under the pier roots, whose banks carry the pier ramps. The town builds
+  the timber wall wherever it finds that drop on the terrain.
+- Keep-clear zones (`clear`) are circles `{ X, Z, R, Core? }` or turned rectangles with
+  `Hx, Hz, C, S` and an optional `Solid` flag (a building footprint). Plants and rocks keep out
+  of the whole zone; the cliff rocks of the town bowl only keep out of solid rectangles, circle
+  cores (`Core`, default `0.6 * R`) and the paths.
+- Steep stretches of `Ramp` paths get stair flights with a hidden walking slab (`StairRamp`).
+
 ## Lune gotchas (the build runs in Lune, not Roblox)
 
 - `Instance.new("Part")` defaults to studded surfaces: always create parts with `P.part`.
