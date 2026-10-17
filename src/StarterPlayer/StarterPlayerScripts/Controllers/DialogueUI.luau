@@ -4,9 +4,11 @@
 -- text and 2-4 answers (click, tap or press 1-4). The camera gently frames the NPC.
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -242,6 +244,13 @@ local function displayName(shopId: string, fallback: string): string
 	return fallback
 end
 
+-- The default hotbar also listens to the number keys; hide it while talking
+local function setBackpack(enabled: boolean)
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, enabled)
+	end)
+end
+
 ---------------------------------------------------------------------------
 -- Camera
 ---------------------------------------------------------------------------
@@ -405,6 +414,9 @@ local function showChoices(list: { Choice })
 		})
 		UIKit.Round(key)
 		UIKit.Stroke(key, C.Shadow, 1.5)
+		if i == 1 and UserInputService.GamepadEnabled then
+			GuiService.SelectedObject = button
+		end
 		-- slide in one after another
 		button.Position = UDim2.fromOffset(28, 0)
 		TweenService:Create(button, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.05 * (i - 1)), {
@@ -439,6 +451,10 @@ local function close(instant: boolean?)
 	clearChoices()
 	ProximityPromptService.Enabled = true
 	HUD.SetDialogueOpen(false)
+	setBackpack(true)
+	if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(gui) then
+		GuiService.SelectedObject = nil
+	end
 	restoreCamera()
 	if instant then
 		gui.Enabled = false
@@ -492,8 +508,15 @@ local function news()
 	say(pick(pool, "News"), rootChoices())
 end
 
+-- Ask the server; returns nil if the conversation ended while waiting for the answer
 local function request(action: string, arg: any?): any
-	return ShopUI.Request(action, arg)
+	local conversation = conversationId
+	clearChoices()
+	local result = ShopUI.Request(action, arg)
+	if conversationId ~= conversation or not current or closing then
+		return nil, true
+	end
+	return result, false
 end
 
 rootChoices = function(): { Choice }
@@ -521,9 +544,10 @@ rootChoices = function(): { Choice }
 		if type(carrying) == "string" then
 			local value = player:GetAttribute("CarryingValue")
 			add(("Sell my treasure (%sg)"):format(Util.FormatNumber(if type(value) == "number" then value else 0)), function()
-				clearChoices()
-				local result = request("SellTreasure")
-				if result and result.Ok then
+				local result, gone = request("SellTreasure")
+				if gone then
+					return
+				elseif result and result.Ok then
 					say("Magnifique! " .. result.Message .. " A pleasure doing business, chéri.", rootChoices())
 				else
 					say(if result then result.Message else "Hmm? Speak up, chéri.", rootChoices())
@@ -540,9 +564,10 @@ rootChoices = function(): { Choice }
 		end)
 	elseif shopId == "Tavern" then
 		add(("A grog, please! (%dg)"):format(Config.GrogPrice), function()
-			clearChoices()
-			local result = request("BuyGrog")
-			if result and result.Ok then
+			local result, gone = request("BuyGrog")
+			if gone then
+				return
+			elseif result and result.Ok then
 				say(pick(GROG_OK, "Grog"), rootChoices())
 			else
 				say(if result then "No coin, no grog, sweetheart. " .. result.Message else "Eh? Say that again, love.", rootChoices())
@@ -613,6 +638,7 @@ function DialogueUI.Open(shopId: string)
 	}):Play()
 	ProximityPromptService.Enabled = false
 	HUD.SetDialogueOpen(true)
+	setBackpack(false)
 	frameNpc()
 	say(pick(p.Greetings, "Greet" .. shopId), rootChoices())
 end

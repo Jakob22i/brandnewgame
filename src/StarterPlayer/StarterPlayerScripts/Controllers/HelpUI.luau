@@ -11,7 +11,8 @@ local C = UIKit.Colors
 local window: UIKit.Window
 
 local SECTIONS = {
-	{ "Your first voyage", "1. Talk to the Merchant and buy a Castaway's Map.\n2. Talk to the Shipwright and Launch your free Sloop.\n3. Equip your map to see which island has the X.\n4. Sail there, equip the Shovel and click on the X to dig.\n5. Carry the chest back and sell it to the Merchant!" },
+	{ "Your first voyage", "1. Talk to Madame Coralie (Merchant) and buy a Castaway's Map.\n2. Talk to Captain Barnaby (Shipwright) and Launch your free Sloop.\n3. Equip your map to see which island has the X.\n4. Sail there, equip the Shovel and click on the X to dig.\n5. Carry the chest back and sell it to Madame Coralie!" },
+	{ "Shopkeepers", "Press E near a shopkeeper to talk. Pick an answer with the mouse, a tap or the keys 1-4.\nAsk them for news - they know the best tips and rumours.\nCaptain Barnaby also paints your sails: new colours and symbols for your ship." },
 	{ "Sailing", "Press E at the wheel to take the helm (one pirate at a time).\nA/D turn the wheel - it stays where you leave it (C centres it).\nW/S lower and raise the sails. Raise the anchor at the capstan first!\nSail with the wind (arrow on the compass) to go faster." },
 	{ "Fighting", "Cutlass: click to swing. Flintlock: click to shoot.\nCannons: press E at a cannon, aim with the mouse, click to fire.\nCannonballs blast holes in ships - repair holes on deck before you sink!\nKingshaven is a safe haven: no fighting there." },
 	{ "Plunder", "Chests on your deck sail with you - and can be stolen.\nDefeat pirates carrying treasure to make them drop it.\nSink rival ships for a reward. Their cargo floats to the surface.\nThe richest pirate online is crowned King of the Pirates!" },

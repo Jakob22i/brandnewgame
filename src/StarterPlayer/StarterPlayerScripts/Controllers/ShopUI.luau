@@ -504,8 +504,8 @@ local function buildCustomize(body: Frame)
 		UIKit.Corner(cell, 10)
 		UIKit.Stroke(cell, Color3.fromRGB(190, 152, 98), 1.5)
 		UIKit.Gradient(cell, Color3.new(1, 1, 1), Color3.fromRGB(236, 226, 206))
-		UIKit.Hover(cell)
 		selectStroke(cell, preview.Kind == "Color" and preview.Color == id)
+		UIKit.Hover(cell)
 		-- a tiny sail on its yard
 		UIKit.new("Frame", {
 			Position = UDim2.new(0.5, -34, 0, 10),
@@ -570,8 +570,8 @@ local function buildCustomize(body: Frame)
 		UIKit.Corner(cell, 10)
 		UIKit.Stroke(cell, Color3.fromRGB(190, 152, 98), 1.5)
 		UIKit.Gradient(cell, Color3.new(1, 1, 1), Color3.fromRGB(236, 226, 206))
-		UIKit.Hover(cell)
 		selectStroke(cell, preview.Kind == "Symbol" and preview.Symbol == id)
+		UIKit.Hover(cell)
 		if def then
 			UIKit.Icon(cell, def.Glyph, 46, def.BadgeColor, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 7) })
 		else

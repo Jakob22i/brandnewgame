@@ -464,12 +464,14 @@ end
 
 function HUD.Init()
 	gui = UIKit.Screen("HUD", 2)
+	-- toasts get their own layer so they show above shop windows and dialogues
 	notifications = UIKit.new("Frame", {
+		Name = "Notifications",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 100),
 		Size = UDim2.new(0.9, 0, 0, 220),
 		BackgroundTransparency = 1,
-		Parent = gui,
+		Parent = UIKit.Screen("Toasts", 20),
 	})
 	UIKit.List(notifications, 6)
 	hitMarker = UIKit.new("TextLabel", {
