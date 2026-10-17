@@ -31,7 +31,7 @@ local RUMORS = {
 	"Treasure on your deck sails with you... and can be stolen by rivals.",
 	"Holes in the hull leak your ship's health away. Patch them quick!",
 	"Anchor in Kingshaven harbour and the dockhands repair your ship for free.",
-	"The richest pirate on the seas wears the crown. Is it you?",
+	"The richest pirate on the seas gets their name on the King's statue. Is it you?",
 	"Skull Rock and Devil's Ridge are crawling with the undead.",
 	"Lost a chest overboard? It floats! Swim out and grab it.",
 }

@@ -120,7 +120,7 @@ local TIPS = {
 	"Tip: sail with the wind for extra speed.",
 	"Tip: dropping anchor at full speed spins your ship around!",
 	"Tip: repair holes on deck before your ship sinks.",
-	"Tip: the richest pirate online is crowned King of the Pirates.",
+	"Tip: the richest pirate online is named King of the Pirates on the statue.",
 	"Tip: chests on your deck can be stolen by rival pirates!",
 	"Tip: Captain Barnaby paints new colours and symbols on your sails.",
 	"Tip: talk to the shopkeepers - they know the latest rumours.",

@@ -1,11 +1,10 @@
 -- Day/night cycle, the wind, and the crown: the richest pirate online is crowned
--- "King of the Pirates" (golden crown + their name on the statue in Kingshaven).
+-- "King of the Pirates" (their name on the statue in Kingshaven).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -37,61 +36,12 @@ end
 
 local function removeCrown(player: Player)
 	player:SetAttribute("IsKing", nil)
-	local character = player.Character
-	if character then
-		local crown = character:FindFirstChild("PirateKingCrown")
-		if crown then
-			crown:Destroy()
-		end
-		local head = character:FindFirstChild("Head")
-		local title = head and head:FindFirstChild("KingTitle")
-		if title then
-			title:Destroy()
-		end
-	end
 end
 
+-- The king only gets their name on the statue plaque (no crown or title on the character)
 function WorldService.ApplyCrown(player: Player)
-	if currentKing ~= player then
-		return
-	end
-	player:SetAttribute("IsKing", true)
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local head = character and character:FindFirstChild("Head")
-	if not character or not humanoid or not head then
-		return
-	end
-	if not character:FindFirstChild("PirateKingCrown") then
-		local template = ServerStorage:FindFirstChild("PirateKingCrown")
-		if template and template:IsA("Accessory") then
-			humanoid:AddAccessory(template:Clone())
-		end
-	end
-	if not head:FindFirstChild("KingTitle") then
-		local gui = Instance.new("BillboardGui")
-		gui.Name = "KingTitle"
-		gui.Size = UDim2.fromOffset(280, 40)
-		gui.StudsOffset = Vector3.new(0, 4.2, 0)
-		gui.MaxDistance = 150
-		gui.LightInfluence = 0
-		local label = Instance.new("TextLabel")
-		label.BackgroundTransparency = 1
-		label.Size = UDim2.fromScale(1, 1)
-		label.Text = "👑 KING OF THE PIRATES 👑"
-		label.TextScaled = true
-		label.FontFace = Font.new(Config.Fonts.Display)
-		label.TextColor3 = Color3.fromRGB(255, 214, 90)
-		label.Parent = gui
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(60, 30, 10)
-		stroke.Thickness = 2
-		stroke.Parent = label
-		local gradient = Instance.new("UIGradient")
-		gradient.Color = ColorSequence.new(Color3.fromRGB(255, 246, 200), Color3.fromRGB(255, 190, 60))
-		gradient.Rotation = 90
-		gradient.Parent = label
-		gui.Parent = head
+	if currentKing == player then
+		player:SetAttribute("IsKing", true)
 	end
 end
 

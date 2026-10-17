@@ -154,7 +154,7 @@ local PEOPLE: { [string]: Person } = {
 			"Crewmates respawn on the crew's ship. A good crew is worth more than gold!",
 			"Starter gear can't be traded, but maps and fine weapons can.",
 			"Both pirates press Ready, then Confirm. No take-backs, savvy?",
-			"The richest pirate online wears the crown. Gold talks, and it talks loud!",
+			"The richest pirate online gets their name on the King's statue. Gold talks, and it talks loud!",
 		},
 		AboutQuestion = "Who's your feathered friend?",
 		About = {
@@ -501,7 +501,7 @@ local function news()
 	local pool = table.clone(p.News)
 	local king = Workspace:GetAttribute("KingName")
 	if type(king) == "string" and king ~= "" and king ~= player.DisplayName then
-		table.insert(pool, "{king} wears the crown these days. Richest pirate on the seas, they say. For now...")
+		table.insert(pool, "{king} is King of the Pirates these days. Richest pirate on the seas, they say. For now...")
 	elseif king == player.DisplayName then
 		table.insert(pool, "Look who it is! The King of the Pirates himself, in my humble shop!")
 	end

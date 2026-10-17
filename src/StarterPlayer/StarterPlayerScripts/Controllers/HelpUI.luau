@@ -15,7 +15,7 @@ local SECTIONS = {
 	{ "Shopkeepers", "Press E near a shopkeeper to talk. Pick an answer with the mouse, a tap or the keys 1-4.\nAsk them for news - they know the best tips and rumours.\nCaptain Barnaby also paints your sails: new colours and symbols for your ship." },
 	{ "Sailing", "Press E at the wheel to take the helm (one pirate at a time).\nA/D turn the wheel - it stays where you leave it (C centres it).\nW/S lower and raise the sails. Raise the anchor at the capstan first!\nSail with the wind (arrow on the compass) to go faster." },
 	{ "Fighting", "Cutlass: click to swing. Flintlock: click to shoot.\nCannons: press E at a cannon, aim with the mouse, click to fire.\nCannonballs blast holes in ships - repair holes on deck before you sink!\nKingshaven is a safe haven: no fighting there." },
-	{ "Plunder", "Chests on your deck sail with you - and can be stolen.\nDefeat pirates carrying treasure to make them drop it.\nSink rival ships for a reward. Their cargo floats to the surface.\nThe richest pirate online is crowned King of the Pirates!" },
+	{ "Plunder", "Chests on your deck sail with you - and can be stolen.\nDefeat pirates carrying treasure to make them drop it.\nSink rival ships for a reward. Their cargo floats to the surface.\nThe richest pirate online is named King of the Pirates on the statue!" },
 	{ "Crew & trading", "Open CREW [P] to invite pirates or trade with them.\nCrewmates can't hurt each other and respawn on the crew's ship.\nTrades only work in Kingshaven." },
 }
 

@@ -68,18 +68,19 @@ Players.CharacterAutoLoads = false -- the server spawns players once Kingshaven'
 StarterPlayer.CameraMaxZoomDistance = 220
 StarterPlayer.CharacterWalkSpeed = Config.DefaultWalkSpeed
 
--- Lighting: warm tropical sun, soft haze over a turquoise sea
+-- Lighting: a warm but grounded tropical sun. Exposure, bloom, glare and specular are kept low
+-- so sand, water and paint read as real materials instead of a shiny holiday brochure.
 Lighting.Technology = Enum.Technology.Future
-Lighting.Brightness = 3.2
-Lighting.Ambient = rgb(86, 88, 100)
-Lighting.OutdoorAmbient = rgb(150, 152, 162)
-Lighting.ColorShift_Top = rgb(255, 242, 218)
+Lighting.Brightness = 2.3
+Lighting.Ambient = rgb(70, 66, 64)
+Lighting.OutdoorAmbient = rgb(122, 118, 112)
+Lighting.ColorShift_Top = rgb(242, 222, 190)
 Lighting.ColorShift_Bottom = rgb(0, 0, 0)
-Lighting.EnvironmentDiffuseScale = 1
-Lighting.EnvironmentSpecularScale = 1
-Lighting.ExposureCompensation = 0.15
+Lighting.EnvironmentDiffuseScale = 0.6
+Lighting.EnvironmentSpecularScale = 0.4
+Lighting.ExposureCompensation = -0.2
 Lighting.GeographicLatitude = 18
-Lighting.ShadowSoftness = 0.25
+Lighting.ShadowSoftness = 0.35
 Lighting.GlobalShadows = true
 Lighting.TimeOfDay = "14:00:00"
 
@@ -94,20 +95,20 @@ local function lightingChild(className: string, name: string)
 end
 
 local atmosphere = lightingChild("Atmosphere", "Atmosphere")
-atmosphere.Density = 0.3
-atmosphere.Offset = 0.22
-atmosphere.Color = rgb(198, 230, 246)
-atmosphere.Decay = rgb(104, 156, 188)
-atmosphere.Glare = 0.35
-atmosphere.Haze = 1.1
+atmosphere.Density = 0.34
+atmosphere.Offset = 0.12
+atmosphere.Color = rgb(196, 208, 210)
+atmosphere.Decay = rgb(96, 116, 124)
+atmosphere.Glare = 0.05
+atmosphere.Haze = 1.7
 
 local bloom = lightingChild("BloomEffect", "Bloom")
-bloom.Intensity = 0.45
-bloom.Size = 28
-bloom.Threshold = 1.35
+bloom.Intensity = 0.12
+bloom.Size = 22
+bloom.Threshold = 2.4
 
 local sunRays = lightingChild("SunRaysEffect", "SunRays")
-sunRays.Intensity = 0.07
+sunRays.Intensity = 0.02
 sunRays.Spread = 0.55
 
 local dof = lightingChild("DepthOfFieldEffect", "DepthOfField")
@@ -118,21 +119,21 @@ dof.InFocusRadius = 260
 dof.NearIntensity = 0
 
 local cc = lightingChild("ColorCorrectionEffect", "TropicalGrade")
-cc.Saturation = 0.18
-cc.Contrast = 0.07
-cc.Brightness = 0.02
-cc.TintColor = rgb(255, 251, 242)
+cc.Saturation = 0.02
+cc.Contrast = 0.1
+cc.Brightness = -0.03
+cc.TintColor = rgb(255, 246, 232)
 
 local sky = lightingChild("Sky", "Sky")
-sky.SunAngularSize = 14
+sky.SunAngularSize = 11
 sky.MoonAngularSize = 9
 sky.StarCount = 3000
 
 -- Water
 local terrain = Workspace.Terrain
-terrain.WaterColor = rgb(18, 170, 180)
-terrain.WaterTransparency = 0.55
-terrain.WaterReflectance = 0.45
+terrain.WaterColor = rgb(24, 124, 134)
+terrain.WaterTransparency = 0.45
+terrain.WaterReflectance = 0.25
 terrain.WaterWaveSize = 0.28
 terrain.WaterWaveSpeed = 12
 -- No grass blades: the base place had Decoration on with GrassLength 0.7, which covered every
@@ -144,7 +145,7 @@ terrain.GrassLength = 0.3
 local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
 clouds.Cover = 0.52
 clouds.Density = 0.7
-clouds.Color = rgb(255, 255, 255)
+clouds.Color = rgb(236, 234, 228)
 clouds.Parent = terrain
 
 -- 3. Scripts from src/ -------------------------------------------------------------
@@ -238,28 +239,6 @@ end
 
 local enemyFolder = P.folder(ServerStorage, "Enemies")
 Rigs.Skeleton().Parent = enemyFolder
-
-do -- crown for the King of the Pirates
-	local gold = rgb(255, 200, 60)
-	local acc = Instance.new("Accessory")
-	acc.Name = "PirateKingCrown"
-	local handle = P.part(acc, { Name = "Handle", Shape = "Cylinder", Size = V(0.6, 1.5, 1.5), CFrame = CF(0, 0, 0) * roblox.CFrame.Angles(0, 0, math.pi / 2), Mat = "Metal", Color = gold, Reflectance = 0.2 })
-	for i = 0, 4 do
-		local a = i * math.pi * 2 / 5
-		local point = P.part(acc, { Name = "Point", Size = V(0.25, 0.55, 0.25), CFrame = CF(math.cos(a) * 0.65, 0.5, math.sin(a) * 0.65), Mat = "Metal", Color = gold })
-		local gem = P.part(acc, { Name = "Gem", Shape = "Ball", Size = V(0.25, 0.25, 0.25), CFrame = CF(math.cos(a) * 0.65, 0.85, math.sin(a) * 0.65), Mat = "Neon", Color = if i % 2 == 0 then rgb(255, 50, 70) else rgb(60, 200, 255) })
-		P.weld(handle, point)
-		P.weld(handle, gem)
-	end
-	for _, part in P.descendantParts(acc) do
-		part.Anchored = false
-		part.CanCollide = false
-		part.Massless = true
-	end
-	P.attachment(handle, "HatAttachment", CF(0, -0.35, 0))
-	P.pointLight(handle, rgb(255, 210, 120), 8, 1, false)
-	acc.Parent = ServerStorage
-end
 
 -- 6. The world ------------------------------------------------------------------------
 for _, name in { "Ships", "Enemies", "Treasure", "Effects" } do

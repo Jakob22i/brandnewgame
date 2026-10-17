@@ -9,23 +9,23 @@ WorldData.WaterLevel = 0
 WorldData.FloorLevel = -56 -- ocean floor
 WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on X and Z
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
-WorldData.TerrainVersion = 6 -- bump when the terrain recipe changes
+WorldData.TerrainVersion = 7 -- bump when the terrain recipe changes
 
 -- Terrain material colours as plain RGB numbers (applied with Terrain:SetMaterialColor by the
 -- TerrainGenerator; the build tools read them too)
 -- Warm Sea of Thieves tones: sunny yellow-green meadows over a deeper leafy floor, warm
 -- sandstone cliffs with brown rock strata, dirt and mud where people walk.
 WorldData.TerrainColors = {
-	Sand = { 236, 210, 156 },
-	Grass = { 136, 170, 62 },
-	LeafyGrass = { 90, 138, 50 },
+	Sand = { 222, 200, 152 },
+	Grass = { 120, 150, 62 },
+	LeafyGrass = { 84, 124, 50 },
 	Rock = { 156, 122, 92 },
 	Slate = { 118, 114, 110 },
 	Basalt = { 58, 54, 60 },
 	Cobblestone = { 170, 154, 132 },
 	Ground = { 142, 108, 72 },
 	Mud = { 108, 84, 60 },
-	Sandstone = { 214, 176, 124 },
+	Sandstone = { 200, 166, 120 },
 	Limestone = { 226, 220, 200 },
 } :: { [string]: { number } }
 
