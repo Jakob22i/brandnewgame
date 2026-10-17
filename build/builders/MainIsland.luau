@@ -27,8 +27,8 @@ local VINES = { rgb(52, 122, 44), rgb(64, 138, 50), rgb(44, 108, 42), rgb(74, 14
 local SIGN_TEXT = rgb(246, 232, 200)
 
 -- Part budgets (Kingshaven as a whole stays under ~7000 parts with the jungle)
-local CLIFF_BUDGET = 3000 -- terrace cliffs, the town ledges and the lagoon walls
-local COAST_BUDGET = 480 -- sea cliffs and the walls of the town pool
+local CLIFF_BUDGET = 2700 -- the town bowl first, then the terrace cliffs and the lagoon walls
+local COAST_BUDGET = 440 -- sea cliffs
 local BOULDERS = 7
 local SEA_STACKS = 7
 local LANDMARKS = 7
@@ -654,7 +654,7 @@ local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width:
 		P.plank(m, lo + off + V(0, h * 0.5 - 0.45, 0) - dir * 0.2, hi + off + V(0, h * 0.5 - 0.45, 0) + dir * 0.1, 0.5, 1.2, { Name = "Stringer", Mat = "Wood", Color = DARK_WOOD })
 		count += 1
 		-- railing posts where this side is open (the ground beside the flight is not a wall)
-		local posts = math.max(1, math.ceil(len / (if wooden then 3.6 else 6)))
+		local posts = math.max(1, math.ceil(len / (if wooden then 3.6 else 7.5)))
 		local last = nil
 		for k = 0, posts do
 			local t = k / posts
@@ -727,7 +727,7 @@ function stairFlights(folder: any, H: any, World: any, path: any, skip: { [numbe
 				continue
 			end
 			local inTown = (a.X - town.X) ^ 2 + (a.Z - town.Z) ^ 2 < (town.Radius + 30) ^ 2
-			stairFlight(folder, H, rng, pa, pb, path.Width, if inTown then 0.8 else 1.0, inTown)
+			stairFlight(folder, H, rng, pa, pb, path.Width, if inTown then 0.8 else 1.35, inTown)
 			table.insert(covered, { a.S, b.S })
 			for t = 0, 1, 0.25 do
 				local p = pa:Lerp(pb, t)
@@ -807,7 +807,9 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 						lantern(lights, V(x, h, z), V(-lx, 0, -lz), rng)
 						table.insert(clear, { X = x, Z = z, R = 3 })
 						side = -side
-						nextS = smp.S + 36
+						-- (closer together in and around the town, further apart out on the island)
+						local inTown = (x - World.Town.X) ^ 2 + (z - World.Town.Z) ^ 2 < (World.Town.Radius + 30) ^ 2
+						nextS = smp.S + (if inTown then 36 else 52)
 					end
 				end
 			end

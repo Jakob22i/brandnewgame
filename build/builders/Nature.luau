@@ -546,8 +546,9 @@ end
 -- small rocks right up to the walls and the path edges, broadleaf trees on the ledges, no
 -- open lawns. Further out the jungle is densest along the trails and thins out where nobody
 -- walks. Part budgets per kind (the town is filled first, it ranks above the wild jungle).
-local JUNGLE_BUDGET = { Tree = 2200, Palm = 1450, Small = 1600, Mound = 320, Thicket = 1650, Rock = 240 }
+local JUNGLE_BUDGET = { Tree = 2200, Palm = 1450, Small = 1600, Mound = 320, Thicket = 1050, Rock = 240 }
 local TOWN_REACH = 178 -- studs around the heart of the town that count as the town
+local FAR_JUNGLE = 300 -- beyond this from the heart of the town the wild jungle is thinner
 
 local function countParts(m: any): number
 	local n = 0
@@ -732,7 +733,9 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 		local x, z, h = c[1], c[2], c[3]
 		local town = c[7] == true
 		local R = if town then rng:Range(3.2, 5.2) else rng:Range(7, 11)
-		if c[5] > 0.45 or trees.hits(x, z, R * 1.1, 0.8) or blocked(x, z, World, clear, if town then R * 0.6 + 1 else R * 0.8) then
+		-- (the jungle thins out far from the town, on the far side of the island)
+		local spread = if not town and (x - hx) ^ 2 + (z - hz) ^ 2 > FAR_JUNGLE * FAR_JUNGLE then 1.45 else 0.8
+		if c[5] > 0.45 or trees.hits(x, z, R * 1.1, spread) or blocked(x, z, World, clear, if town then R * 0.6 + 1 else R * 0.8) then
 			continue
 		end
 		Nature.Thicket(folder, V(x, h - (if town then 0.6 else 0), z), rng, R)
@@ -810,7 +813,7 @@ function Nature.Build(parent: any, H: any, World: any, Noise: any, clear: { any 
 		local trees = newGrid(16)
 		local groves = {}
 		-- Palms: prefer beaches and gentle ground
-		local target = math.floor(island.Palms * 0.3 + 0.5)
+		local target = math.floor(island.Palms * 0.24 + 0.5)
 		local placed = 0
 		local tries = 0
 		while placed < target and tries < target * 30 do
@@ -847,7 +850,7 @@ function Nature.Build(parent: any, H: any, World: any, Noise: any, clear: { any 
 		stats.Trees += placed
 
 		-- Thickets: cheap masses of jungle that make the islands look lush
-		local thicketShare = if island.Kind == "Tropical" then 2.0 elseif island.Kind == "Rocky" then 0.5 elseif island.Kind == "Atoll" then 0.4 else 0.6
+		local thicketShare = if island.Kind == "Tropical" then 1.6 elseif island.Kind == "Rocky" then 0.4 elseif island.Kind == "Atoll" then 0.3 else 0.45
 		target = math.floor(island.Palms * thicketShare + 0.5)
 		placed, tries = 0, 0
 		while placed < target and tries < target * 40 do
@@ -888,7 +891,7 @@ function Nature.Build(parent: any, H: any, World: any, Noise: any, clear: { any 
 		stats.Rocks += placed
 
 		-- Undergrowth: ferns, red plants, hibiscus and bushes
-		local count = math.floor(island.Palms * 0.25)
+		local count = math.floor(island.Palms * 0.12)
 		placed, tries = 0, 0
 		while placed < count and tries < count * 30 do
 			tries += 1
