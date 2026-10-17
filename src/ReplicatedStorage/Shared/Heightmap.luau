@@ -503,6 +503,27 @@ local function carveStreams(x: number, z: number, h: number): number
 	return math.max(h - depth, math.min(h, 3))
 end
 
+-- The waterfront: in front of the quay wall the harbour level drops to a strip of beach that
+-- slopes into the sea (not under the pier roots, whose banks carry the pier ramps)
+local Quay = WorldData.Quay
+local function applyQuay(x: number, z: number, h: number): number
+	if z < Quay.Z or x < Quay.MinX - Quay.Blend or x > Quay.MaxX + Quay.Blend then
+		return h
+	end
+	local w = smoothstep(Quay.MinX - Quay.Blend, Quay.MinX, x) * (1 - smoothstep(Quay.MaxX, Quay.MaxX + Quay.Blend, x))
+	for _, pier in WorldData.Piers do
+		w *= smoothstep(1.5, 7, math.abs(x - pier.X) - pier.HalfWidth)
+	end
+	if w <= 0 then
+		return h
+	end
+	local dz = z - Quay.Z
+	local u = math.max(0, dz - 1.6)
+	local beach = Quay.Beach - u * 0.1 - u * u * 0.01 + Noise.Fbm2(x * 0.07, z * 0.07, 4411, 2) * 0.35 * smoothstep(1.6, 6, dz)
+	local target = if dz < 1.6 then h + (beach - h) * smooth(dz / 1.6) else beach
+	return h + (math.min(h, target) - h) * w
+end
+
 local function islandHeight(island: WorldData.Island, x: number, z: number): number
 	local dx = x - island.X
 	local dz = z - island.Z
@@ -516,7 +537,7 @@ local function islandHeight(island: WorldData.Island, x: number, z: number): num
 	end
 
 	if island.Kind == "Main" then
-		local h = carveStreams(x, z, carveWater(x, z, applyTracks(x, z, mainRaw(island, x, z))))
+		local h = carveStreams(x, z, carveWater(x, z, applyQuay(x, z, applyTracks(x, z, mainRaw(island, x, z)))))
 		local hw = rectMask(x, z, Harbor)
 		if hw > 0 then
 			h = math.min(h, h + (Harbor.Depth - h) * hw)
@@ -664,6 +685,10 @@ function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, i
 		if slope > 0.45 then
 			return if n > 0.12 then "Rock" else "Ground" -- broken slopes
 		end
+		-- the quay: paved from the boardwalk to the quay wall
+		if z > 305 and z < Quay.Z + 1.8 and x > Quay.MinX - 6 and x < Quay.MaxX + 6 and h < 7.5 then
+			return "Cobblestone"
+		end
 		-- worn dirt along the paths and around the plaza, wet mud along the streams
 		local worn = 2 + n * 1.6
 		if rd < worn or plaza < (Town.SquareRadius + 2.5 + n * 2) ^ 2 then
@@ -672,14 +697,19 @@ function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, i
 		if sd < 4 + n * 2 then
 			return "Mud"
 		end
+		if h < 7.5 then
+			-- the harbour level is open sand. Green creeps out only from the feet of the ledges,
+			-- away from the waterfront, in broad soft patches (small noisy tufts of grass or dirt
+			-- on the sand read as square blotches on the terrain voxels)
+			if z < 284 and Noise.Fbm2(x * 0.018, z * 0.018, 779, 2) > 0.2 then
+				return "LeafyGrass"
+			end
+			return "Sand"
+		end
 		-- the ground: leafy jungle floor and warm grass meadows in patches, bare dirt and mud
 		-- in the hollows, sandstone breaking through on the high ledges
 		if n < -0.45 then
 			return if h < 12 then "Mud" else "Ground"
-		end
-		if h < 7.5 then
-			-- the harbour level is sandy ground with tufts of leafy green
-			return if n > 0.02 then "Sand" elseif n < -0.25 then "Ground" else "LeafyGrass"
 		end
 		if n > 0.48 and h > 18 then
 			return "Sandstone"

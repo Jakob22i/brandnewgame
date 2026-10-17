@@ -202,6 +202,12 @@ WorldData.Streams = {
 	{ Name = "EastFalls", Width = 7, Depth = 2, Points = { { 72, 118 }, { 68, 134 }, { 60, 150 }, { 50, 164 }, { 40, 176 }, { 30, 184 } } },
 } :: { Stream }
 
+-- The waterfront: a paved quay at the harbour level (Town.Height) runs from the boardwalk to a
+-- timber quay wall at Z, below which a strip of beach (Beach studs high at the wall) slopes into
+-- the sea. Between MinX and MaxX (fading out over Blend at the ends); the banks under the pier
+-- roots stay as they are, so the pier ramps keep their gentle slope.
+WorldData.Quay = { MinX = -114, MaxX = 116, Z = 318, Beach = 3, Blend = 14 }
+
 -- Dredged harbour basin on the south side so ships can moor at the piers
 WorldData.Harbor = { MinX = -175, MaxX = 175, MinZ = 380, MaxZ = 950, Depth = -18, Blend = 60 }
 

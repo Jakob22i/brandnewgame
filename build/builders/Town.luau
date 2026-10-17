@@ -1675,11 +1675,6 @@ local function harbourClutter(parent: any, H: any)
 		O.Net(m, cf * CF(0, 3.0, 0), 5.6, 3.2)
 		O.Barrel(m, cf * CF(4.4, 0, 1.4), { Scale = 0.8 })
 	end
-	-- rowboats pulled up on the beach either side of the piers
-	for _, spec in { { 24, 320, 0.5 }, { -98, 318, -0.4 }, { 104, 322, 0.9 } } do
-		local x, z = spec[1], spec[2]
-		rowboat(m, CF(x, (H.GetHeight(x, z)) + 0.15, z) * Angles(0, spec[3], 0) * Angles(0, 0, 0.12))
-	end
 	-- lantern posts lining the street from the arch to the plaza
 	for _, spec in { { -8.5, 278, -PI / 2 }, { 8.5, 270, PI / 2 } } do
 		O.LanternPost(m, at(spec[1], spec[2], spec[3]), 8, { Range = 18, Brightness = 1.2 })
@@ -1737,6 +1732,225 @@ local function poolDock(parent: any, H: any, Pool: any)
 	O.Part(m, "LanternPole", V(0.4, 3.4, 0.4), CF(-3.2, deckY - top + 1.6, z1 - 1), O.DARK, "Wood")
 	P.transform(m, origin)
 	return m, lip
+end
+
+-- The waterfront --------------------------------------------------------------------------------------
+-- Clusters of cargo standing on the ground at (x, z): barrels, crates, sacks and rope
+local function cargo(parent: any, H: any, x: number, z: number, yaw: number, kind: number)
+	local m = P.model(parent, "Cargo")
+	local cf = CF(x, (H.GetHeight(x, z)), z) * Angles(0, yaw, 0)
+	local function at(lx: number, lz: number, a: number?)
+		local p = cf * V(lx, 0, lz)
+		return CF(p.X, (H.GetHeight(p.X, p.Z)) - 0.1, p.Z) * Angles(0, yaw + (a or 0), 0)
+	end
+	if kind == 1 then
+		O.Barrel(m, at(0, 0))
+		O.Barrel(m, at(2.1, 0.4), { Color = rgb(150, 100, 60) })
+		O.Barrel(m, at(1.0, 1.9), { Lying = true })
+		O.Crate(m, at(-2.4, 0.6, 0.3))
+	elseif kind == 2 then
+		O.Crate(m, at(0, 0, 0.2))
+		O.Crate(m, at(2.5, 0.2, -0.1), 2.0)
+		O.Crate(m, at(0.9, 0.1, 0.5) * CF(0, 2.4, 0), 1.6)
+		O.Sack(m, at(-2.0, 1.0))
+	else
+		O.Barrel(m, at(0, 0), { Color = rgb(110, 76, 50) })
+		O.Sack(m, at(1.8, 0.8))
+		O.Crate(m, at(-1.9, 0.5, 0.6), 1.8)
+		O.RopeCoil(m, at(1.2, -1.6))
+	end
+	return m
+end
+
+-- A net drying on a rack of two posts (cf: ground between the posts, the net in the XY plane)
+local function netRack(parent: any, cf: any, w: number)
+	for _, sx in { -w / 2, w / 2 } do
+		O.Part(parent, "RackPost", V(0.5, 5.6, 0.5), cf * CF(sx, 2.3, 0) * Angles(0, 0, math.rad(O.Range(-3, 3))), O.Jitter(O.DARK, 0.06), "Wood")
+	end
+	O.Part(parent, "RackBar", V(w + 0.8, 0.4, 0.4), cf * CF(0, 4.9, 0), O.DARK, "Wood")
+	O.Net(parent, cf * CF(0, 3.2, 0), w - 0.6, 3.2)
+end
+
+-- A cargo derrick on the quay edge: a mast with a boom swung out over the beach, a crate hanging
+-- from the tackle and a winch at the foot (cf: foot of the mast, the boom reaches towards +Z)
+local function derrick(parent: any, cf: any)
+	local m = P.model(parent, "Derrick")
+	local wood = rgb(112, 82, 56)
+	O.Part(m, "DerrickBase", V(3.2, 0.6, 3.2), cf * CF(0, 0.3, 0), O.DARK, "Wood")
+	O.Part(m, "DerrickMast", V(1.1, 13, 1.1), cf * CF(0, 6.5, 0), O.Jitter(wood, 0.05), "Wood")
+	for _, sx in { -1, 1 } do
+		O.Stick(m, "DerrickStrut", (cf * CF(sx * 2.6, 0.2, -1.8)).Position, (cf * CF(0, 5.5, 0)).Position, 0.45, 0.45, O.DARK, "Wood", { CanCollide = false })
+	end
+	local foot = (cf * CF(0, 2.6, 0.4)).Position
+	local tip = (cf * CF(0.8, 10.6, 9.5)).Position
+	O.Stick(m, "DerrickBoom", foot, tip, 0.6, 0.6, O.Jitter(wood, 0.05), "Wood", { CanCollide = false })
+	O.Rod(m, "DerrickStay", (cf * CF(0, 12.8, 0)).Position, tip, 0.14, O.ROPE, "Fabric", { CanCollide = false })
+	local hook = tip - V(0, 4.6, 0)
+	O.Rod(m, "DerrickFall", tip, hook, 0.16, O.ROPE, "Fabric", { CanCollide = false })
+	O.Crate(m, CF(hook - V(0, 2.2, 0)) * Angles(0, 0.5, 0), 2.0)
+	O.CylZ(m, "Winch", cf * CF(0, 1.6, -1.4) * Angles(0, PI / 2, 0), 2.2, 1.1, O.DARK, "Wood", { CanCollide = false })
+	O.Rod(m, "WinchRope", (cf * CF(0, 1.9, -1.2)).Position, foot + V(0, 0.4, 0), 0.14, O.ROPE, "Fabric", { CanCollide = false })
+	return m
+end
+
+-- A little plank jetty running from the beach out over the shallows, a rowboat moored alongside
+-- (x: centre line; from z0 on the beach out to z1)
+local function dinghyDock(parent: any, H: any, x: number, z0: number, z1: number)
+	O.Seed(2929)
+	local m = P.model(parent, "DinghyDock")
+	local y = math.max((H.GetHeight(x, z0)) + 0.5, 3.2)
+	O.Deck(m, x - 2.2, x + 2.2, z0, z1, y, { AlongZ = true, MaxLen = 14 })
+	local z = z0 + 1
+	while z <= z1 do
+		for _, sx in { -2.4, 2.4 } do
+			local g = (H.GetHeight(x + sx, z))
+			if g < y - 0.8 then
+				P.pillar(m, x + sx, z, g - 3, y + (if z > z1 - 2 then 1.4 else 0.2), 0.9, { Name = "Piling", Mat = "Wood", Color = O.Jitter(rgb(100, 74, 52), 0.08) })
+			end
+		end
+		z += 6
+	end
+	O.Bollard(m, CF(x + 1.4, y, z1 - 1.6))
+	O.Part(m, "LanternPole", V(0.45, 5.2, 0.45), CF(x - 2.1, y + 2.4, z1 - 0.6), O.DARK, "Wood")
+	O.Lantern(m, CF(x - 2.1, y + 4.8, z1 + 0.2), { Range = 16 })
+	-- the rowboat, afloat on the lee side, tied off to the bollard
+	local boat = CF(x + 4.6, -0.25, z1 - 7) * Angles(0, 0.05, 0)
+	rowboat(m, boat)
+	O.Rod(m, "MooringLine", V(x + 1.4, y + 1.2, z1 - 1.6), (boat * CF(0, 1.2, -4.2)).Position, 0.14, O.ROPE, "Fabric", { CanCollide = false })
+	return m
+end
+
+-- The quay wall: a timber bulkhead along the front of the paved quay (WorldData.Quay) where the
+-- harbour level drops to the beach, found on the terrain. Posts stand proud of the boarded face
+-- under a heavy cap beam; steps lead down to the sand. Returns the model and the runs of wall.
+local function quayWall(parent: any, H: any, World: any, steps: { { number } })
+	O.Seed(6262)
+	local m = P.model(parent, "QuayWall")
+	local Q = World.Quay
+	local zf = Q.Z + 2.0 -- the face of the wall
+	local function topAt(x: number): number
+		return (H.GetHeight(x, Q.Z - 1.5))
+	end
+	local function lowAt(x: number): number
+		return math.min((H.GetHeight(x, zf + 0.8)), (H.GetHeight(x, zf + 2.5)) + 0.6)
+	end
+	local function inSteps(x: number): boolean
+		for _, s in steps do
+			if math.abs(x - s[1]) < s[2] / 2 + 0.4 then
+				return true
+			end
+		end
+		return false
+	end
+	-- runs of wall: wherever the quay drops more than a step to the beach
+	local runs = {}
+	local cur = nil
+	for x = Q.MinX - Q.Blend, Q.MaxX + Q.Blend do
+		local top = topAt(x)
+		local ok = top > 4.5 and top - lowAt(x) > 1.4 and not inSteps(x)
+		if ok then
+			if not cur then
+				cur = { x, x }
+				table.insert(runs, cur)
+			end
+			cur[2] = x
+		else
+			cur = nil
+		end
+	end
+	local wood = rgb(104, 76, 52)
+	for _, run in runs do
+		local xa, xb = run[1] - 0.4, run[2] + 0.4
+		local len = xb - xa
+		if len < 3 then
+			continue
+		end
+		local pieces = math.max(1, math.floor(len / 8.5 + 0.5))
+		local pl = len / pieces
+		for k = 0, pieces - 1 do
+			local x0, x1 = xa + k * pl, xa + (k + 1) * pl
+			local xc = (x0 + x1) / 2
+			local top = math.max(topAt(x0), topAt(xc), topAt(x1))
+			local low = math.min(lowAt(x0), lowAt(xc), lowAt(x1)) - 0.8
+			-- boards on the face, bottom up
+			local rows = math.max(1, math.ceil((top - low) / 1.15))
+			local bh = (top - low) / rows
+			for r = 0, rows - 1 do
+				O.Part(m, "QuayBoard", V(pl + 0.1, bh - 0.08, 0.8), CF(xc, low + (r + 0.5) * bh, zf - 0.2) * Angles(0, 0, math.rad(O.Range(-0.4, 0.4))), O.Jitter(O.Pick(O.WOOD), 0.06), "WoodPlanks")
+			end
+			-- the cap beam over the edge
+			O.Part(m, "QuayCap", V(pl + 0.12, 0.8, 2.6), CF(xc, top + 0.1, zf - 1.1), O.Jitter(rgb(96, 68, 46), 0.05), "Wood")
+		end
+		-- posts proud of the face
+		local posts = math.max(1, math.floor(len / 4.2 + 0.5))
+		for k = 0, posts do
+			local x = xa + len * k / posts
+			local top = topAt(x)
+			P.pillar(m, x, zf + 0.45, lowAt(x) - 2, top + 0.9, 1.15, { Name = "QuayPost", Mat = "Wood", Color = O.Jitter(wood, 0.07) })
+		end
+	end
+	-- steps down to the beach
+	for _, s in steps do
+		local x, w = s[1], s[2]
+		local top = topAt(x)
+		local rise = top - (H.GetHeight(x, zf + 5))
+		local run = (math.max(1, math.ceil(rise / 0.7) - 1) + 1) * 1.2
+		rise = top - (H.GetHeight(x, zf + run)) + 0.2
+		O.Part(m, "StepLanding", V(w + 0.6, 0.8, 2.6), CF(x, top + 0.1, zf - 1.1), O.Jitter(rgb(96, 68, 46), 0.05), "Wood")
+		O.Stairs(m, CF(x, top, zf + 0.2), w, rise)
+	end
+	return m, runs, zf
+end
+
+-- The harbour front: the quay wall, life on the quay and on the beach below it
+local function waterfront(parent: any, H: any, World: any, keep: (number, number, number) -> ())
+	local m = P.model(parent, "Waterfront")
+	local Q = World.Quay
+	local steps = { { 0, 7.5 }, { -100, 5 }, { 102, 5 } }
+	local _, _, zf = quayWall(m, H, World, steps)
+	O.Seed(8181)
+	local function at(x: number, z: number, yaw: number?): any
+		return CF(x, (H.GetHeight(x, z)), z) * Angles(0, yaw or 0, 0)
+	end
+	-- the quay: bollards on the cap, lantern posts, a cargo derrick and stacked cargo
+	for _, x in { -30, 16, 50, -106, 92 } do
+		O.Bollard(m, CF(x, (H.GetHeight(x, Q.Z - 1.5)) + 0.5, zf - 1.1))
+	end
+	for _, spec in { { -18, 0.25 }, { 22, -0.25 }, { -92, 0.1 }, { 110, -0.1 } } do
+		O.LanternPost(m, at(spec[1], Q.Z - 0.6, spec[2]), 8, { Range = 18, Brightness = 1.2 })
+		keep(spec[1], Q.Z - 0.6, 2.5)
+	end
+	derrick(m, at(36, Q.Z - 1.8, 0.15))
+	keep(36, Q.Z - 1.8, 4)
+	for _, c in { { 52, 311, 0.3, 2 }, { -28, 311, -0.2, 1 }, { 89, 312, 0.5, 3 }, { -88, 312, -0.4, 2 }, { 18, 311.5, 0.1, 3 } } do
+		cargo(m, H, c[1], c[2], c[3], c[4])
+		keep(c[1], c[2], 4.5)
+	end
+	-- the beach: rowboats pulled up on the sand, one upturned on trestles for caulking, nets
+	-- drying, a little jetty for the dinghies
+	for _, b in { { 13, 325.5, -0.35 }, { 38, 327, 0.2 }, { -104, 326, 0.45 }, { 96, 326.5, -0.55 } } do
+		rowboat(m, CF(b[1], (H.GetHeight(b[1], b[2])) + 0.12, b[2]) * Angles(0, b[3], 0) * Angles(0, 0, 0.12))
+		keep(b[1], b[2], 5.5)
+	end
+	do
+		local x, z = 110, 324
+		local g = (H.GetHeight(x, z))
+		for _, dz in { -2.6, 2.6 } do
+			O.Sawhorse(m, CF(x, (H.GetHeight(x, z + dz)), z + dz))
+		end
+		rowboat(m, CF(x, g + 4.3, z) * Angles(0, 0.04, PI))
+		O.Barrel(m, at(x + 3.2, z + 3.4), { Scale = 0.8, Color = rgb(70, 54, 40) })
+		keep(x, z, 6)
+	end
+	netRack(m, at(-13, 323.5, 0.08), 6.4)
+	netRack(m, at(78, 323, -0.2), 6)
+	keep(-13, 323.5, 4.5)
+	keep(78, 323, 4.5)
+	O.RopeCoil(m, at(-8.5, 324.5))
+	O.Anchor(m, at(60, 323.5, 0.6) * CF(0, 0.35, 0) * Angles(0, 0, PI / 2), 0.8)
+	dinghyDock(m, H, -26, zf + 0.6, 346)
+	keep(-26, 333, 7)
+	return m
 end
 
 -- Returns the town model and a list of "keep clear" zones for palms/rocks: circles
@@ -1834,9 +2048,11 @@ function Town.Build(parent: any, H: any, World: any)
 
 	-- Cargo and nets on the quay, a railing along the pool's lip, a landing stage on the pool
 	harbourClutter(town, H)
-	for _, spot in { { -22, 289 }, { 23, 288 }, { -58, 289 }, { 50, 286 }, { -12, 279 }, { 13, 281 }, { 100, 288 }, { -102, 288 }, { -62, 275 }, { 62, 274 }, { 24, 320 }, { -98, 318 }, { 104, 322 } } do
+	for _, spot in { { -22, 289 }, { 23, 288 }, { -58, 289 }, { 50, 286 }, { -12, 279 }, { 13, 281 }, { 100, 288 }, { -102, 288 }, { -62, 275 }, { 62, 274 } } do
 		keep(spot[1], spot[2], 5)
 	end
+	-- the waterfront: the quay wall, cargo, the derrick, boats and nets on the beach, the jetty
+	waterfront(town, H, World, keep)
 	poolRail(town, H, World.Pool)
 	local _, lip = poolDock(town, H, World.Pool)
 	keep(lip.X, lip.Z, 6)

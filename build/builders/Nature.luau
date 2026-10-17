@@ -469,6 +469,10 @@ local function blocked(x: number, z: number, World: any, clear: { any }, margin:
 	if z > 292 and z < 312 and math.abs(x) < 88 then
 		return true -- boardwalk
 	end
+	local quay = World.Quay
+	if quay and z > 305 and z < quay.Z + 3 and x > quay.MinX - 4 and x < quay.MaxX + 4 then
+		return true -- the paved quay and its wall
+	end
 	local town = World.Town
 	if (x - town.X) ^ 2 + (z - town.Z) ^ 2 < (town.SquareRadius + 8) ^ 2 then
 		return true -- town square

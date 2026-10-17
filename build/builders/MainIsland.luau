@@ -447,8 +447,9 @@ local function buildTownRocks(model: any, H: any, World: any, rng: any, clear: {
 	local isle, top = Nature.SlabStack(folder, CF(ix, ih - 0.5, iz) * Angles(0, 0.6, 0), 12, 9, -ih + 3.5, rng, Nature.SANDSTONE, "Sandstone", true, true)
 	count(isle)
 	count(Nature.Palm(folder, V(ix + 1, ih - 0.5 + top - 0.4, iz), rng, 0.8, 0))
-	-- boulders on the harbour beach
-	for _, spec in { { -24, 318, 8 }, { -112, 314, 10 }, { 32, 320, 7 }, { 116, 312, 9 } } do
+	-- the harbour beach below the quay wall: boulders where the wall ends, against the banks of
+	-- the pier roots and the creek mouth, and palms leaning over the sand
+	for _, spec in { { -121, 321, 10 }, { 123, 321, 10 }, { 58.5, 325, 5 }, { 82, 324.5, 5.5 }, { -82, 324.5, 5 }, { -34.5, 327, 6 }, { -113, 333, 6 } } do
 		local x, z, size = spec[1], spec[2], spec[3]
 		local h = H.GetHeight(x, z)
 		local m, rtop = Nature.SlabStack(folder, CF(x, h - 1.2, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.85), rng, Nature.SANDSTONE, "Sandstone", true, true)
@@ -457,6 +458,14 @@ local function buildTownRocks(model: any, H: any, World: any, rng: any, clear: {
 			count(Nature.Palm(folder, V(x, h - 1.2 + rtop - 0.3, z), rng, 0.9, 0))
 		end
 		table.insert(clear, { X = x, Z = z, R = size * 0.8 })
+	end
+	for _, spec in { { 48, 323.5, 0.3 }, { -110, 325, -0.5 }, { 88, 322, -0.2 }, { -36, 321.5, 0.2 } } do
+		local x, z = spec[1], spec[2]
+		local h = H.GetHeight(x, z)
+		if h > 1 then
+			count(Nature.Palm(folder, V(x, h - 0.3, z), rng, rng:Range(1.0, 1.2), 0))
+			table.insert(clear, { X = x, Z = z, R = 4 })
+		end
 	end
 	return parts
 end
