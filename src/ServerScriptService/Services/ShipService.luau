@@ -578,6 +578,123 @@ local function findAll(model: Instance, name: string, className: string?): { Ins
 	return list
 end
 
+-------------------------------------------------------------------------------
+-- Cosmetics: sail colour + the symbol painted on the sails (bought at the Shipwright)
+-------------------------------------------------------------------------------
+
+local function makeEmblemGui(part: BasePart, face: Enum.NormalId, symbol: Config.SailSymbolDef, enabled: boolean)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Emblem"
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 1
+	gui.MaxDistance = 600
+	gui.Enabled = enabled
+	-- round badge (kept square by the aspect constraint) with a golden rim
+	local badge = Instance.new("Frame")
+	badge.Name = "Badge"
+	badge.AnchorPoint = Vector2.new(0.5, 0.5)
+	badge.Position = UDim2.fromScale(0.5, 0.5)
+	badge.Size = UDim2.fromScale(0.96, 0.96)
+	badge.BackgroundColor3 = symbol.BadgeColor
+	badge.BorderSizePixel = 0
+	badge.Parent = gui
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 1
+	aspect.Parent = badge
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = badge
+	local rim = Instance.new("UIStroke")
+	rim.Color = Color3.fromRGB(226, 178, 74)
+	rim.Thickness = 7
+	rim.Parent = badge
+	local inner = Instance.new("Frame")
+	inner.Name = "Ring"
+	inner.AnchorPoint = Vector2.new(0.5, 0.5)
+	inner.Position = UDim2.fromScale(0.5, 0.5)
+	inner.Size = UDim2.fromScale(0.84, 0.84)
+	inner.BackgroundTransparency = 1
+	inner.Parent = badge
+	local innerCorner = Instance.new("UICorner")
+	innerCorner.CornerRadius = UDim.new(0.5, 0)
+	innerCorner.Parent = inner
+	local innerStroke = Instance.new("UIStroke")
+	innerStroke.Color = Color3.fromRGB(240, 222, 170)
+	innerStroke.Thickness = 2
+	innerStroke.Transparency = 0.35
+	innerStroke.Parent = inner
+	local glyph = Instance.new("TextLabel")
+	glyph.Name = "Glyph"
+	glyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	glyph.Position = UDim2.fromScale(0.5, 0.52)
+	glyph.Size = UDim2.fromScale(0.74, 0.74)
+	glyph.BackgroundTransparency = 1
+	glyph.Text = symbol.Glyph
+	glyph.TextScaled = true
+	glyph.TextColor3 = Color3.new(1, 1, 1)
+	glyph.Parent = badge
+	gui.Parent = part
+	return gui
+end
+
+-- Recolours every "Sail" part and paints the owner's symbol on every "SailEmblem"
+function ShipService.ApplyCosmetics(ship: Ship)
+	if ship.Destroyed then
+		return
+	end
+	local data = DataService.Get(ship.Owner)
+	local cosmetics = data and data.Cosmetics
+	local colorDef = (cosmetics and Config.SailColors[cosmetics.SailColor]) or Config.SailColors[Config.DefaultSailColor]
+	local symbol = if cosmetics and cosmetics.Symbol ~= "" then Config.SailSymbols[cosmetics.Symbol] else nil
+
+	local sails = findAll(ship.Model, "Sail", "BasePart")
+	-- each cloth keeps its shade relative to the others so the sails don't look flat
+	local total, count = 0, 0
+	for _, sail in sails do
+		if (sail :: Instance):GetAttribute("SailShade") == nil then
+			local c = (sail :: BasePart).Color
+			total += c.R + c.G + c.B
+			count += 1
+		end
+	end
+	local mean = if count > 0 then total / count else 0
+	for _, sail in sails do
+		local part = sail :: BasePart
+		local shade = part:GetAttribute("SailShade")
+		if type(shade) ~= "number" then
+			local c = part.Color
+			shade = if mean > 0.01 then math.clamp((c.R + c.G + c.B) / mean, 0.9, 1.1) else 1
+			part:SetAttribute("SailShade", shade)
+		end
+		local k = shade :: number
+		local base = colorDef.Color
+		part.Color = Color3.new(math.clamp(base.R * k, 0, 1), math.clamp(base.G * k, 0, 1), math.clamp(base.B * k, 0, 1))
+	end
+
+	local visible = ship.Sail > 0.6
+	for _, emblem in findAll(ship.Model, "SailEmblem", "BasePart") do
+		for _, child in emblem:GetChildren() do
+			if child:IsA("SurfaceGui") then
+				child:Destroy()
+			end
+		end
+		if symbol then
+			makeEmblemGui(emblem :: BasePart, Enum.NormalId.Front, symbol, visible)
+			makeEmblemGui(emblem :: BasePart, Enum.NormalId.Back, symbol, visible)
+		end
+	end
+end
+
+-- Called when a player changes their sails at the Shipwright
+function ShipService.RefreshCosmetics(player: Player)
+	local ship = shipByOwner[player]
+	if ship and not ship.Destroyed then
+		ShipService.ApplyCosmetics(ship)
+	end
+end
+
 local function setupPrompts(ship: Ship)
 	ship.HelmPrompt.Triggered:Connect(function(player)
 		if ship.Sinking then
@@ -804,6 +921,7 @@ function ShipService.Spawn(player: Player, shipType: string): (boolean, string)
 
 	ships[model] = ship
 	shipByOwner[player] = ship
+	ShipService.ApplyCosmetics(ship)
 	updateSails(ship)
 	updateAnchorVisual(ship)
 	setPromptText(ship)

@@ -6,6 +6,7 @@ local ORDER = {
 	"State",
 	"HUD",
 	"ShopUI",
+	"DialogueUI",
 	"PlayersUI",
 	"TradeUI",
 	"MapUI",

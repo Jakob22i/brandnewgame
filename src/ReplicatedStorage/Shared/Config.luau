@@ -130,15 +130,16 @@ export type ItemDef = {
 	Range: number?,
 	DigStrikes: number?,
 	Order: number,
+	Icon: string?, -- emoji shown in shops and trades
 }
 
 Config.Items = {
-	Cutlass = { Id = "Cutlass", DisplayName = "Cutlass", Price = 0, Starter = true, Tradeable = false, Description = "Trusty pirate sword.", Damage = 24, Cooldown = 0.55, Range = 7, Order = 1 },
-	Shovel = { Id = "Shovel", DisplayName = "Shovel", Price = 0, Starter = true, Tradeable = false, Description = "Dig up buried treasure.", DigStrikes = 3, Order = 2 },
-	Spyglass = { Id = "Spyglass", DisplayName = "Spyglass", Price = 0, Starter = true, Tradeable = false, Description = "Spot ships and islands from afar.", Order = 3 },
-	Flintlock = { Id = "Flintlock", DisplayName = "Flintlock Pistol", Price = 400, Starter = false, Tradeable = true, Shop = "Armory", Description = "One shot, big bang. Slow reload.", Damage = 45, Cooldown = 2.6, Range = 260, Order = 4 },
-	GoldenCutlass = { Id = "GoldenCutlass", DisplayName = "Golden Cutlass", Price = 1800, Starter = false, Tradeable = true, Shop = "Armory", Description = "A captain's blade. Hits harder and faster.", Damage = 34, Cooldown = 0.5, Range = 7.5, Order = 5 },
-	GoldenShovel = { Id = "GoldenShovel", DisplayName = "Golden Shovel", Price = 1200, Starter = false, Tradeable = true, Shop = "Armory", Description = "Digs treasure up in just 2 strikes.", DigStrikes = 2, Order = 6 },
+	Cutlass = { Id = "Cutlass", DisplayName = "Cutlass", Price = 0, Starter = true, Tradeable = false, Description = "Trusty pirate sword.", Damage = 24, Cooldown = 0.55, Range = 7, Order = 1, Icon = "🗡️" },
+	Shovel = { Id = "Shovel", DisplayName = "Shovel", Price = 0, Starter = true, Tradeable = false, Description = "Dig up buried treasure.", DigStrikes = 3, Order = 2, Icon = "⛏️" },
+	Spyglass = { Id = "Spyglass", DisplayName = "Spyglass", Price = 0, Starter = true, Tradeable = false, Description = "Spot ships and islands from afar.", Order = 3, Icon = "🔭" },
+	Flintlock = { Id = "Flintlock", DisplayName = "Flintlock Pistol", Price = 400, Starter = false, Tradeable = true, Shop = "Armory", Description = "One shot, big bang. Slow reload.", Damage = 45, Cooldown = 2.6, Range = 260, Order = 4, Icon = "💥" },
+	GoldenCutlass = { Id = "GoldenCutlass", DisplayName = "Golden Cutlass", Price = 1800, Starter = false, Tradeable = true, Shop = "Armory", Description = "A captain's blade. Hits harder and faster.", Damage = 34, Cooldown = 0.5, Range = 7.5, Order = 5, Icon = "⚔️" },
+	GoldenShovel = { Id = "GoldenShovel", DisplayName = "Golden Shovel", Price = 1200, Starter = false, Tradeable = true, Shop = "Armory", Description = "Digs treasure up in just 2 strikes.", DigStrikes = 2, Order = 6, Icon = "⛏️" },
 } :: { [string]: ItemDef }
 
 Config.SellBackRate = 0.5
@@ -213,6 +214,62 @@ Config.GrogPrice = 10
 -- World ---------------------------------------------------------------------
 Config.DayLengthMinutes = 20 -- full day/night cycle (nights pass twice as fast)
 
+-- Ship cosmetics (bought from the Shipwright) ---------------------------------
+-- Every ship starts with black sails and no symbol.
+export type SailColorDef = {
+	Id: string,
+	DisplayName: string,
+	Color: Color3,
+	Price: number,
+	Order: number,
+	Description: string,
+}
+
+Config.DefaultSailColor = "Black"
+Config.SailColors = {
+	Black = { Id = "Black", DisplayName = "Midnight Black", Color = Color3.fromRGB(30, 28, 32), Price = 0, Order = 1, Description = "Tarred black canvas. Feared on every sea." },
+	White = { Id = "White", DisplayName = "Sailcloth White", Color = Color3.fromRGB(238, 232, 214), Price = 1200, Order = 2, Description = "Clean, bright canvas that shines in the sun." },
+	Red = { Id = "Red", DisplayName = "Blood Red", Color = Color3.fromRGB(156, 28, 32), Price = 2000, Order = 3, Description = "Crimson sails tell rivals you mean business." },
+} :: { [string]: SailColorDef }
+
+export type SailSymbolDef = {
+	Id: string,
+	DisplayName: string,
+	Glyph: string, -- emoji painted on the sail
+	Price: number,
+	BadgeColor: Color3, -- round badge behind the glyph
+	Order: number,
+}
+
+Config.SailSymbols = {
+	JollyRoger = { Id = "JollyRoger", DisplayName = "Jolly Roger", Glyph = "☠️", Price = 400, BadgeColor = Color3.fromRGB(44, 40, 46), Order = 1 },
+	CrossedBlades = { Id = "CrossedBlades", DisplayName = "Crossed Blades", Glyph = "⚔️", Price = 600, BadgeColor = Color3.fromRGB(140, 32, 36), Order = 2 },
+	Anchor = { Id = "Anchor", DisplayName = "Old Anchor", Glyph = "⚓", Price = 300, BadgeColor = Color3.fromRGB(32, 64, 122), Order = 3 },
+	Palm = { Id = "Palm", DisplayName = "Castaway Palm", Glyph = "🌴", Price = 350, BadgeColor = Color3.fromRGB(214, 184, 116), Order = 4 },
+	Crab = { Id = "Crab", DisplayName = "Hermit Crab", Glyph = "🦀", Price = 450, BadgeColor = Color3.fromRGB(232, 214, 168), Order = 5 },
+	Star = { Id = "Star", DisplayName = "North Star", Glyph = "⭐", Price = 500, BadgeColor = Color3.fromRGB(26, 38, 84), Order = 6 },
+	Moon = { Id = "Moon", DisplayName = "Crescent Moon", Glyph = "🌙", Price = 600, BadgeColor = Color3.fromRGB(34, 32, 72), Order = 7 },
+	Compass = { Id = "Compass", DisplayName = "Compass Rose", Glyph = "🧭", Price = 700, BadgeColor = Color3.fromRGB(196, 156, 96), Order = 8 },
+	Rose = { Id = "Rose", DisplayName = "Captain's Rose", Glyph = "🌹", Price = 700, BadgeColor = Color3.fromRGB(242, 228, 202), Order = 9 },
+	Parrot = { Id = "Parrot", DisplayName = "Polly", Glyph = "🦜", Price = 800, BadgeColor = Color3.fromRGB(32, 122, 74), Order = 10 },
+	Flame = { Id = "Flame", DisplayName = "Sea Fire", Glyph = "🔥", Price = 900, BadgeColor = Color3.fromRGB(66, 22, 18), Order = 11 },
+	Lightning = { Id = "Lightning", DisplayName = "Storm Bolt", Glyph = "⚡", Price = 900, BadgeColor = Color3.fromRGB(58, 64, 84), Order = 12 },
+	Shark = { Id = "Shark", DisplayName = "Great White", Glyph = "🦈", Price = 1000, BadgeColor = Color3.fromRGB(22, 104, 150), Order = 13 },
+	Ghost = { Id = "Ghost", DisplayName = "Ghost Ship", Glyph = "👻", Price = 1200, BadgeColor = Color3.fromRGB(28, 92, 104), Order = 14 },
+	Kraken = { Id = "Kraken", DisplayName = "Kraken", Glyph = "🐙", Price = 1400, BadgeColor = Color3.fromRGB(92, 42, 122), Order = 15 },
+	Treasure = { Id = "Treasure", DisplayName = "Pieces of Eight", Glyph = "💰", Price = 1500, BadgeColor = Color3.fromRGB(122, 82, 22), Order = 16 },
+	Whale = { Id = "Whale", DisplayName = "Leviathan", Glyph = "🐋", Price = 1600, BadgeColor = Color3.fromRGB(18, 58, 96), Order = 17 },
+	Trident = { Id = "Trident", DisplayName = "Poseidon's Trident", Glyph = "🔱", Price = 1800, BadgeColor = Color3.fromRGB(16, 132, 142), Order = 18 },
+	Dragon = { Id = "Dragon", DisplayName = "Sea Dragon", Glyph = "🐉", Price = 2000, BadgeColor = Color3.fromRGB(22, 112, 82), Order = 19 },
+	Crown = { Id = "Crown", DisplayName = "Pirate Crown", Glyph = "👑", Price = 2500, BadgeColor = Color3.fromRGB(74, 32, 112), Order = 20 },
+} :: { [string]: SailSymbolDef }
+
+-- Fonts (asset ids; the client builds Font objects from these) ----------------
+Config.Fonts = {
+	Display = "rbxassetid://12187372175", -- Rye: titles, buttons, HUD, names
+	Text = "rbxasset://fonts/families/Merriweather.json", -- readable serif for small print
+}
+
 -- UI palette ----------------------------------------------------------------
 Config.Colors = {
 	Parchment = Color3.fromRGB(247, 233, 196),
@@ -227,6 +284,11 @@ Config.Colors = {
 	Red = Color3.fromRGB(210, 70, 60),
 	Ink = Color3.fromRGB(52, 34, 20),
 	White = Color3.fromRGB(255, 255, 255),
+	WoodLight = Color3.fromRGB(150, 98, 56),
+	Rope = Color3.fromRGB(200, 166, 110),
+	Crimson = Color3.fromRGB(150, 34, 38),
+	Navy = Color3.fromRGB(26, 46, 80),
+	Shadow = Color3.fromRGB(22, 13, 6),
 }
 
 return Config

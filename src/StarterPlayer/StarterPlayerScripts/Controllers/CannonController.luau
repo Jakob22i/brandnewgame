@@ -108,7 +108,7 @@ local function buildGui()
 		Size = UDim2.fromOffset(40, 40),
 		BackgroundTransparency = 1,
 		Text = "+",
-		Font = UIKit.Fonts.Body,
+		FontFace = UIKit.Fonts.Body,
 		TextSize = 40,
 		TextColor3 = C.White,
 		Parent = gui,
@@ -124,7 +124,7 @@ local function buildGui()
 	UIKit.Label(hint, "Move mouse to aim  -  Click to fire  -  Space to leave", {
 		Position = UDim2.fromOffset(10, 4),
 		Size = UDim2.new(1, -20, 0, 24),
-		Font = UIKit.Fonts.Small,
+		FontFace = UIKit.Fonts.Small,
 	})
 	local back = UIKit.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),

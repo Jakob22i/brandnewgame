@@ -15,6 +15,13 @@ local DataService = {}
 local STORE_NAME = "KingOfThePirates_PlayerData_v1"
 
 export type MapData = { Id: number, Tier: string, Island: string, X: number, Z: number }
+-- Sail cosmetics: owned colours/symbols (sets) and what is rigged ("" = no symbol)
+export type Cosmetics = {
+	SailColors: { [string]: boolean },
+	Symbols: { [string]: boolean },
+	SailColor: string,
+	Symbol: string,
+}
 export type PlayerData = {
 	Version: number,
 	Gold: number,
@@ -23,6 +30,7 @@ export type PlayerData = {
 	Maps: { MapData },
 	NextMapId: number,
 	Stats: { [string]: number },
+	Cosmetics: Cosmetics,
 }
 
 local store: DataStore? = nil
@@ -57,7 +65,44 @@ local function defaultData(): PlayerData
 		Maps = {},
 		NextMapId = 1,
 		Stats = { ChestsSold = 0, SkeletonsDefeated = 0, ShipsSunk = 0, GoldEarned = 0 },
+		Cosmetics = {
+			SailColors = { [Config.DefaultSailColor] = true },
+			Symbols = {},
+			SailColor = Config.DefaultSailColor,
+			Symbol = "",
+		},
 	}
+end
+
+-- Owned sets and equipped choices must point at things that exist (and are owned)
+local function reconcileCosmetics(data: any, fresh: PlayerData)
+	if type(data.Cosmetics) ~= "table" then
+		data.Cosmetics = fresh.Cosmetics
+	end
+	local cosmetics = data.Cosmetics
+	if type(cosmetics.SailColors) ~= "table" then
+		cosmetics.SailColors = {}
+	end
+	if type(cosmetics.Symbols) ~= "table" then
+		cosmetics.Symbols = {}
+	end
+	for id in cosmetics.SailColors do
+		if not Config.SailColors[id] then
+			cosmetics.SailColors[id] = nil
+		end
+	end
+	for id in cosmetics.Symbols do
+		if not Config.SailSymbols[id] then
+			cosmetics.Symbols[id] = nil
+		end
+	end
+	cosmetics.SailColors[Config.DefaultSailColor] = true
+	if type(cosmetics.SailColor) ~= "string" or not cosmetics.SailColors[cosmetics.SailColor] then
+		cosmetics.SailColor = Config.DefaultSailColor
+	end
+	if type(cosmetics.Symbol) ~= "string" or (cosmetics.Symbol ~= "" and not cosmetics.Symbols[cosmetics.Symbol]) then
+		cosmetics.Symbol = ""
+	end
 end
 
 -- Fill in anything missing from older saves
@@ -84,6 +129,7 @@ local function reconcile(data: any): PlayerData
 		end
 	end
 	data.Ships.Sloop = true
+	reconcileCosmetics(data, fresh)
 	return data
 end
 
@@ -98,6 +144,12 @@ local function snapshot(data: PlayerData)
 		Items = table.clone(data.Items),
 		Maps = table.clone(data.Maps),
 		Stats = table.clone(data.Stats),
+		Cosmetics = {
+			SailColors = table.clone(data.Cosmetics.SailColors),
+			Symbols = table.clone(data.Cosmetics.Symbols),
+			SailColor = data.Cosmetics.SailColor,
+			Symbol = data.Cosmetics.Symbol,
+		},
 	}
 end
 

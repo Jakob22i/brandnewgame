@@ -71,20 +71,26 @@ function WorldService.ApplyCrown(player: Player)
 	if not head:FindFirstChild("KingTitle") then
 		local gui = Instance.new("BillboardGui")
 		gui.Name = "KingTitle"
-		gui.Size = UDim2.fromOffset(260, 34)
+		gui.Size = UDim2.fromOffset(280, 40)
 		gui.StudsOffset = Vector3.new(0, 4.2, 0)
 		gui.MaxDistance = 150
 		gui.LightInfluence = 0
 		local label = Instance.new("TextLabel")
 		label.BackgroundTransparency = 1
 		label.Size = UDim2.fromScale(1, 1)
-		label.Text = "KING OF THE PIRATES"
+		label.Text = "👑 KING OF THE PIRATES 👑"
 		label.TextScaled = true
-		label.Font = Enum.Font.LuckiestGuy
+		label.FontFace = Font.new(Config.Fonts.Display)
 		label.TextColor3 = Color3.fromRGB(255, 214, 90)
-		label.TextStrokeTransparency = 0.1
-		label.TextStrokeColor3 = Color3.fromRGB(60, 30, 10)
 		label.Parent = gui
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(60, 30, 10)
+		stroke.Thickness = 2
+		stroke.Parent = label
+		local gradient = Instance.new("UIGradient")
+		gradient.Color = ColorSequence.new(Color3.fromRGB(255, 246, 200), Color3.fromRGB(255, 190, 60))
+		gradient.Rotation = 90
+		gradient.Parent = label
 		gui.Parent = head
 	end
 end

@@ -49,7 +49,7 @@ local function render()
 	local mine = UIKit.Card(window.Body, 0, 1)
 	mine.Size = UDim2.new(0.5, -6, 1, -64)
 	UIKit.Label(mine, "Your offer" .. (if trade.YouReady then "  (ready)" else ""), {
-		Font = UIKit.Fonts.Title,
+		FontFace = UIKit.Fonts.Title,
 		Position = UDim2.fromOffset(10, 6),
 		Size = UDim2.new(1, -20, 0, 26),
 		TextColor3 = if trade.YouReady then C.Green else C.Wood,
@@ -60,7 +60,7 @@ local function render()
 		BackgroundColor3 = C.White,
 		Text = tostring(trade.You.Gold),
 		PlaceholderText = "Gold to give",
-		Font = UIKit.Fonts.Body,
+		FontFace = UIKit.Fonts.Body,
 		TextSize = 20,
 		TextColor3 = C.Ink,
 		ClearTextOnFocus = false,
@@ -103,7 +103,7 @@ local function render()
 		end
 	end
 	if not any then
-		UIKit.Label(list, "No tradeable items or maps. Starter gear can't be traded.", { Size = UDim2.new(1, -10, 0, 44), TextWrapped = true, Font = UIKit.Fonts.Small })
+		UIKit.Label(list, "No tradeable items or maps. Starter gear can't be traded.", { Size = UDim2.new(1, -10, 0, 44), TextWrapped = true, FontFace = UIKit.Fonts.Small })
 	end
 
 	-- Their side
@@ -111,7 +111,7 @@ local function render()
 	theirs.Size = UDim2.new(0.5, -6, 1, -64)
 	theirs.Position = UDim2.new(0.5, 6, 0, 0)
 	UIKit.Label(theirs, trade.TheirName .. (if trade.ThemReady then "  (ready)" else ""), {
-		Font = UIKit.Fonts.Title,
+		FontFace = UIKit.Fonts.Title,
 		Position = UDim2.fromOffset(10, 6),
 		Size = UDim2.new(1, -20, 0, 26),
 		TextColor3 = if trade.ThemReady then C.Green else C.Wood,
