@@ -445,11 +445,20 @@ end
 
 -- Does (x, z) sit in a spot that must stay clear (buildings, paths, piers, props)?
 -- margin = extra clearance from the paths (trees need more than ferns)
+-- Keep-clear zones are circles { X, Z, R }, or turned rectangles that also carry
+-- Hx, Hz (half sizes) and C, S (cos/sin of the yaw) with R = their bounding radius.
 local function blocked(x: number, z: number, World: any, clear: { any }, margin: number): boolean
 	for _, c in clear do
 		local dx, dz = x - c.X, z - c.Z
 		if dx * dx + dz * dz < c.R * c.R then
-			return true
+			if c.Hx == nil then
+				return true
+			end
+			local lx = dx * c.C - dz * c.S
+			local lz = dx * c.S + dz * c.C
+			if math.abs(lx) < c.Hx and math.abs(lz) < c.Hz then
+				return true
+			end
 		end
 	end
 	for _, pier in World.Piers do
@@ -457,7 +466,7 @@ local function blocked(x: number, z: number, World: any, clear: { any }, margin:
 			return true
 		end
 	end
-	if z > 288 and z < 318 and math.abs(x) < 92 then
+	if z > 292 and z < 312 and math.abs(x) < 88 then
 		return true -- boardwalk
 	end
 	local town = World.Town
@@ -529,9 +538,12 @@ local function newGrid(cell: number)
 end
 
 -- Dense jungle for Kingshaven ----------------------------------------------------------
--- Part budgets: the jungle is densest along the paths, in groves and on the beaches,
--- and thins out where nobody walks.
-local JUNGLE_BUDGET = { Tree = 1650, Palm = 1320, Small = 400, Mound = 240, Thicket = 900 }
+-- The town gets the densest planting: palms, flowering bushes, ferns, red ti plants and
+-- small rocks right up to the walls and the path edges, broadleaf trees on the ledges, no
+-- open lawns. Further out the jungle is densest along the trails and thins out where nobody
+-- walks. Part budgets per kind (the town is filled first, it ranks above the wild jungle).
+local JUNGLE_BUDGET = { Tree = 2200, Palm = 1450, Small = 1600, Mound = 320, Thicket = 1650, Rock = 240 }
+local TOWN_REACH = 178 -- studs around the heart of the town that count as the town
 
 local function countParts(m: any): number
 	local n = 0
@@ -545,10 +557,10 @@ end
 
 local function kingshavenJungle(folder: any, island: any, H: any, World: any, Noise: any, clear: { any }, stats: { [string]: number })
 	local rng = Noise.Rng(island.Seed * 7919 + 4242)
-	local town = World.Town
+	local pool = World.Pool
+	local hx, hz = pool.X, pool.Z + 30 -- heart of the town (between the pool and the plaza)
 	local trees = newGrid(16)
 	local small = newGrid(8)
-	local CELL = 6
 	local R = island.Radius * 1.04
 	local segs = {}
 	for _, path in World.Paths do
@@ -560,12 +572,57 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 	local function pathDistance(x: number, z: number): number
 		local best = math.huge
 		for _, sg in segs do
+			if math.abs(x - sg[1]) > 120 and math.abs(x - sg[3]) > 120 then
+				continue
+			end
 			best = math.min(best, segDist(x, z, sg[1], sg[2], sg[3], sg[4]))
 		end
 		return best
 	end
-	-- candidate spots with a score per kind
-	local lists = { Tree = {}, Palm = {}, Small = {} }
+	-- candidate spots with a score per kind: { x, z, h, score, slope, pathDist, inTown }
+	local lists = { Tree = {}, Palm = {}, Small = {}, Rock = {} }
+	local function consider(x: number, z: number, inTown: boolean)
+		local h, owner = H.GetHeight(x, z)
+		if owner ~= island or h < 2.8 then
+			return
+		end
+		local slope = H.GetSlope(x, z)
+		if slope > 0.6 then
+			return
+		end
+		local pd = pathDistance(x, z)
+		local r = rng:Next()
+		if inTown then
+			-- right along the paths and on the ledges: everything grows here, except tall
+			-- palms and trees in the view from the piers up the street to the pool and the falls
+			local edge = if pd < 9 then 0.6 else 0
+			local corridor = math.abs(x - pool.X) < 26 + (z - pool.Z) * 0.1 and z > pool.Z + pool.Rz - 6
+			if not corridor then
+				table.insert(lists.Palm, { x, z, h, 2 + r + edge * 0.5 - (if h < 7.5 then 0.6 else 0), slope, pd, true })
+				if h > 8.5 then
+					table.insert(lists.Tree, { x, z, h, 1.7 + r, slope, pd, true })
+				end
+			end
+			-- (the harbour beach stays open sand: palms only)
+			if h > 5.5 and z < 298 then
+				table.insert(lists.Small, { x, z, h, 2 + r + edge, slope, pd, true })
+				table.insert(lists.Rock, { x, z, h, r, slope, pd, true })
+			end
+			return
+		end
+		local near = 1 - math.clamp((pd - 18) / 60, 0, 0.75) -- 1 near the paths, 0.25 far away
+		local grove = (Noise.Fbm2(x * 0.011, z * 0.011, 4711, 2) + 1) * 0.5
+		if h < 7.5 then
+			table.insert(lists.Palm, { x, z, h, 0.8 + r * 0.7, slope, pd })
+			table.insert(lists.Small, { x, z, h, 0.3 + r * 0.5, slope, pd })
+		else
+			table.insert(lists.Tree, { x, z, h, grove * 0.45 + near * 0.5 + r * 0.6, slope, pd })
+			table.insert(lists.Palm, { x, z, h, near * 0.5 + (1 - grove) * 0.3 + r * 0.6, slope, pd })
+			table.insert(lists.Small, { x, z, h, near * 1.2 + grove * 0.2 + r * 0.4, slope, pd })
+		end
+	end
+	-- the wild jungle on a 6-stud grid, the town on a finer one
+	local CELL, TCELL = 6, 3.5
 	for gx = -R, R, CELL do
 		for gz = -R, R, CELL do
 			if gx * gx + gz * gz > R * R then
@@ -573,34 +630,18 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			end
 			local x = island.X + gx + rng:Range(0, CELL)
 			local z = island.Z + gz + rng:Range(0, CELL)
-			local h, owner = H.GetHeight(x, z)
-			if owner ~= island or h < 2.8 then
+			if (x - hx) ^ 2 + (z - hz) ^ 2 < TOWN_REACH * TOWN_REACH then
 				continue
 			end
-			local slope = H.GetSlope(x, z)
-			if slope > 0.6 then
-				continue
-			end
-			local td = math.sqrt((x - town.X) ^ 2 + (z - town.Z) ^ 2)
-			local inTown = td < town.Radius - 6
-			local pd = pathDistance(x, z)
-			local near = 1 - math.clamp((pd - 18) / 60, 0, 0.75) -- 1 near the paths, 0.25 far away
-			local grove = (Noise.Fbm2(x * 0.011, z * 0.011, 4711, 2) + 1) * 0.5
-			local beach = h < 7.5 and not inTown
-			local r = rng:Next()
-			if inTown then
-				-- the town plateau: palms and flowers around its edge only
-				if td > town.Radius - 50 then
-					table.insert(lists.Palm, { x, z, h, 0.5 + r * 0.6, slope, pd, true })
-					table.insert(lists.Small, { x, z, h, 0.4 + r * 0.6, slope })
-				end
-			elseif beach then
-				table.insert(lists.Palm, { x, z, h, 0.8 + r * 0.7, slope, pd })
-				table.insert(lists.Small, { x, z, h, 0.3 + r * 0.5, slope })
-			else
-				table.insert(lists.Tree, { x, z, h, grove * 0.45 + near * 0.5 + r * 0.6, slope, pd })
-				table.insert(lists.Palm, { x, z, h, near * 0.5 + (1 - grove) * 0.3 + r * 0.6, slope, pd })
-				table.insert(lists.Small, { x, z, h, near * 1.2 + grove * 0.2 + r * 0.4, slope })
+			consider(x, z, false)
+		end
+	end
+	for gx = hx - TOWN_REACH, hx + TOWN_REACH, TCELL do
+		for gz = hz - TOWN_REACH, hz + TOWN_REACH, TCELL do
+			local x = gx + rng:Range(0, TCELL)
+			local z = gz + rng:Range(0, TCELL)
+			if (x - hx) ^ 2 + (z - hz) ^ 2 < TOWN_REACH * TOWN_REACH then
+				consider(x, z, true)
 			end
 		end
 	end
@@ -609,24 +650,26 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 			return a[4] > b[4]
 		end)
 	end
-	local used = { Tree = 0, Palm = 0, Small = 0, Mound = 0, Thicket = 0 }
-	-- broadleaf trees first: they make the canopy
+	local used = { Tree = 0, Palm = 0, Small = 0, Mound = 0, Thicket = 0, Rock = 0 }
+	local lh = World.Lighthouse
+	-- broadleaf trees first: they make the canopy (smaller and closer together in town)
 	for _, c in lists.Tree do
 		if used.Tree >= JUNGLE_BUDGET.Tree then
 			break
 		end
 		local x, z, h = c[1], c[2], c[3]
-		local s = rng:Range(1.1, 1.45)
-		local lh = World.Lighthouse
+		local town = c[7] == true
+		local s = if town then rng:Range(0.8, 1.1) else rng:Range(1.1, 1.45)
 		if (x - lh.X) ^ 2 + (z - lh.Z) ^ 2 < (lh.SummitRadius - 4) ^ 2 then
 			continue -- keep the lighthouse yard open
 		end
-		if c[5] > 0.42 or trees.hits(x, z, 7.5 * s, 0.8) or blocked(x, z, World, clear, 5) then
+		local reach = if town then 6 * s else 7.5 * s
+		if c[5] > 0.42 or trees.hits(x, z, reach, if town then 0.72 else 0.8) or blocked(x, z, World, clear, if town then 3 else 5) then
 			continue
 		end
 		-- full detail where people walk, lighter trees deep in the jungle
 		used.Tree += countParts(Nature.JungleTree(folder, V(x, h, z), rng, s, if c[6] < 34 then 1 else 0))
-		trees.add(x, z, 7.5 * s)
+		trees.add(x, z, reach)
 		stats.Trees += 1
 	end
 	-- leafy mounds under and between the trees (cheap undergrowth that fills the gaps)
@@ -641,69 +684,96 @@ local function kingshavenJungle(folder: any, island: any, H: any, World: any, No
 		local m = P.model(folder, "Undergrowth")
 		local green = pick(rng, CANOPY_DARK)
 		for _ = 1, 2 do
-			local r = rng:Range(5, 8)
+			local r = rng:Range(4, 7)
 			blob(m, V(r * 1.3, r * 0.75, r * 1.15), CF(x + rng:Range(-2.5, 2.5), h + r * 0.05, z + rng:Range(-2.5, 2.5)) * Angles(0, rng:Range(0, math.pi), 0), { Name = "Leaves", Color = shade(green, rng:Range(0.9, 1.15)) })
 		end
 		used.Mound += 2
 		small.add(x, z, 4)
 	end
-	-- thickets: big leafy masses that fill the jungle away from the paths (cheap canopy)
+	-- palms: many in the town and on the beaches, poking out of the canopy in the jungle
+	for _, c in lists.Palm do
+		if used.Palm >= JUNGLE_BUDGET.Palm then
+			break
+		end
+		local x, z, h = c[1], c[2], c[3]
+		local town = c[7] == true
+		-- town palms stand in loose clumps (a palm needs room, a clump mate may lean close)
+		local room = if town then 7.5 else 4.5
+		if c[5] > 0.42 or trees.hits(x, z, room, 1.0) or blocked(x, z, World, clear, if town then 2.5 else 4) then
+			continue
+		end
+		local ps = if h > 9 and not town then rng:Range(1.2, 1.5) else rng:Range(0.9, 1.3)
+		used.Palm += countParts(Nature.Palm(folder, V(x, h, z), rng, ps, if c[6] < 30 and not town then 1 else 0))
+		trees.add(x, z, room)
+		stats.Palms += 1
+	end
+	-- thickets: big leafy masses that fill the jungle away from the paths (cheap canopy);
+	-- in the town they are smaller bush masses along the ledge edges and the backs of houses
 	local far = table.clone(lists.Tree)
+	for _, c in lists.Small do
+		if c[7] then
+			table.insert(far, c)
+		end
+	end
 	for _, c in far do
-		c[7] = c[6] + rng:Range(0, 50)
+		c[8] = if c[7] then 60 + rng:Range(0, 50) else c[6] + rng:Range(0, 50)
 	end
 	table.sort(far, function(a, b)
-		return a[7] > b[7]
+		return a[8] > b[8]
 	end)
 	for _, c in far do
 		if used.Thicket >= JUNGLE_BUDGET.Thicket then
 			break
 		end
 		local x, z, h = c[1], c[2], c[3]
-		local R = rng:Range(7, 11)
-		if c[5] > 0.45 or trees.hits(x, z, R * 1.1, 0.8) or blocked(x, z, World, clear, R * 0.8) then
+		local town = c[7] == true
+		local R = if town then rng:Range(3.2, 5.2) else rng:Range(7, 11)
+		if c[5] > 0.45 or trees.hits(x, z, R * 1.1, 0.8) or blocked(x, z, World, clear, if town then R * 0.6 + 1 else R * 0.8) then
 			continue
 		end
-		Nature.Thicket(folder, V(x, h, z), rng, R)
+		Nature.Thicket(folder, V(x, h - (if town then 0.6 else 0), z), rng, R)
 		used.Thicket += 3
-		trees.add(x, z, R * 1.1)
+		trees.add(x, z, R * (if town then 0.9 else 1.1))
 	end
-	for _, c in lists.Palm do
-		if used.Palm >= JUNGLE_BUDGET.Palm then
+	-- small sandstone rocks in the town's gaps
+	for _, c in lists.Rock do
+		if used.Rock >= JUNGLE_BUDGET.Rock then
 			break
 		end
 		local x, z, h = c[1], c[2], c[3]
-		if c[5] > 0.42 or trees.hits(x, z, 4.5, 1.0) or blocked(x, z, World, clear, 4) then
+		if c[4] < 0.8 or h < 8 or small.hits(x, z, 3, 1.0) or trees.hits(x, z, 1.2, 1.0) or blocked(x, z, World, clear, 1.5) then
 			continue
 		end
-		-- palms in the jungle grow tall enough to poke out of the canopy
-		local ps = if h > 9 and not c[8] then rng:Range(1.2, 1.5) else rng:Range(0.95, 1.25)
-		used.Palm += countParts(Nature.Palm(folder, V(x, h, z), rng, ps, if c[6] < 30 then 1 else 0))
-		trees.add(x, z, 4.5)
-		stats.Palms += 1
+		local size = rng:Range(3, 5.5)
+		local m = Nature.SlabStack(folder, CF(x, h - size * 0.35, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.9), rng, Nature.SANDSTONE, "Sandstone", rng:Next() < 0.5, true)
+		used.Rock += countParts(m)
+		small.add(x, z, 3)
+		stats.Rocks += 1
 	end
+	-- flowers, ferns and bushes
 	for _, c in lists.Small do
 		if used.Small >= JUNGLE_BUDGET.Small then
 			break
 		end
 		local x, z, h = c[1], c[2], c[3]
-		if small.hits(x, z, 2.6, 1.0) or trees.hits(x, z, 0.6, 1.0) or blocked(x, z, World, clear, 1.5) then
+		local town = c[7] == true
+		if small.hits(x, z, if town then 2.1 else 2.6, 1.0) or trees.hits(x, z, 0.6, 1.0) or blocked(x, z, World, clear, if town then 0.8 else 1.5) then
 			continue
 		end
 		local s = rng:Range(0.9, 1.3)
 		local r = rng:Next()
 		local m
-		if r < 0.36 then
+		if r < 0.3 then
 			m = Nature.Fern(folder, V(x, h - 0.2, z), rng, s)
-		elseif r < 0.66 then
+		elseif r < 0.58 then
 			m = Nature.RedPlant(folder, V(x, h - 0.2, z), rng, s)
-		elseif r < 0.86 then
+		elseif r < 0.78 then
 			m = Nature.Hibiscus(folder, V(x, h - 0.4, z), rng, s)
 		else
 			m = Nature.Bush(folder, V(x, h - 0.5, z), rng, s)
 		end
 		used.Small += countParts(m)
-		small.add(x, z, 2.6)
+		small.add(x, z, if town then 2.1 else 2.6)
 		stats.Bushes += 1
 	end
 end

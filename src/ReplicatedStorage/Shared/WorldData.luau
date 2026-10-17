@@ -9,20 +9,23 @@ WorldData.WaterLevel = 0
 WorldData.FloorLevel = -56 -- ocean floor
 WorldData.HalfSize = 3584 -- terrain is generated from -HalfSize to +HalfSize on X and Z
 WorldData.BoundaryRadius = 3300 -- ships beyond this get battered by the wild sea
-WorldData.TerrainVersion = 4 -- bump when the terrain recipe changes
+WorldData.TerrainVersion = 5 -- bump when the terrain recipe changes
 
 -- Terrain material colours as plain RGB numbers (applied with Terrain:SetMaterialColor by the
 -- TerrainGenerator; the build tools read them too)
+-- Warm Sea of Thieves tones: sunny yellow-green meadows over a deeper leafy floor, warm
+-- sandstone cliffs with brown rock strata, dirt and mud where people walk.
 WorldData.TerrainColors = {
-	Sand = { 240, 216, 160 },
-	Grass = { 98, 182, 68 },
-	LeafyGrass = { 70, 160, 56 },
-	Rock = { 134, 128, 118 },
+	Sand = { 236, 210, 156 },
+	Grass = { 136, 170, 62 },
+	LeafyGrass = { 90, 138, 50 },
+	Rock = { 156, 122, 92 },
 	Slate = { 118, 114, 110 },
 	Basalt = { 58, 54, 60 },
-	Cobblestone = { 168, 156, 140 },
-	Ground = { 150, 112, 74 },
-	Sandstone = { 222, 192, 144 },
+	Cobblestone = { 170, 154, 132 },
+	Ground = { 142, 108, 72 },
+	Mud = { 108, 84, 60 },
+	Sandstone = { 214, 176, 124 },
 	Limestone = { 226, 220, 200 },
 } :: { [string]: { number } }
 
@@ -76,8 +79,49 @@ WorldData.Islands = {
 
 WorldData.MainIslandName = "Kingshaven"
 
--- Town of Kingshaven (a flattened plateau on the main island)
-WorldData.Town = { X = 0, Z = 120, Radius = 175, Blend = 70, Height = 6, SquareRadius = 46 }
+-- Town of Kingshaven: a waterfall lagoon outpost. The town wraps around an inner pool fed by
+-- a cascade down the northern cliffs; shops sit on rocky ledges at different heights around
+-- it and the pool drains through a rocky cut to the harbour beach.
+--   X, Z         = the plaza (King statue) on the harbour level, SquareRadius its cobbles
+--   Height       = the harbour level (the plaza, the quay and the boardwalk)
+--   Radius       = how far the town dressing reaches around the plaza
+WorldData.Town = { X = 0, Z = 258, Radius = 175, Blend = 0, Height = 6, SquareRadius = 17 }
+
+-- Inside the basin the island stays at Town.Height; the ledges below rise out of it
+WorldData.Basin = { X = 0, Z = 205, Radius = 115 }
+
+-- The inner pool (sea level, so the terrain fills it with water) and its outlet cut to the beach
+WorldData.Pool = { X = 0, Z = 192, Rx = 40, Rz = 30, Depth = -6 }
+WorldData.PoolCut = { Width = 7, Depth = -3, Points = { { -22, 214, 7 }, { -34, 238, 7 }, { -39, 266, 8 }, { -43, 294, 12 }, { -48, 318, 22 }, { -52, 340, 30 } } }
+
+-- Rocky ledges and outcrops of the town: rounded blocks with flat tops at H and cliffs
+-- (Edge = studs over which the cliff falls) around an ellipse Rx x Rz turned by Yaw.
+-- Rough = bumpiness of the top (0 for the shop pads). The levels: harbour 6, low ledges 10,
+-- mid ledges 24, high ledges 40, rim 52-76.
+export type Ledge = { Name: string, X: number, Z: number, Rx: number, Rz: number, Yaw: number, H: number, Edge: number, Rough: number }
+WorldData.Ledges = {
+	-- low ledges by the water (Merchant, Shipwright)
+	{ Name = "LowWest", X = -68, Z = 240, Rx = 32, Rz = 25, Yaw = 0.15, H = 10, Edge = 5, Rough = 0 },
+	{ Name = "LowEast", X = 68, Z = 240, Rx = 32, Rz = 25, Yaw = -0.15, H = 10, Edge = 5, Rough = 0 },
+	-- mid ledges (Trading Post, Armory) and the cascade's first step behind the pool
+	{ Name = "MidWest", X = -86, Z = 188, Rx = 30, Rz = 30, Yaw = 0.3, H = 24, Edge = 7, Rough = 0 },
+	{ Name = "MidEast", X = 86, Z = 188, Rx = 30, Rz = 30, Yaw = -0.3, H = 24, Edge = 7, Rough = 0 },
+	{ Name = "CascadeLow", X = 8, Z = 152, Rx = 50, Rz = 17, Yaw = 0, H = 24, Edge = 7, Rough = 0.6 },
+	-- high ledges (the Tavern) and the cascade's second step
+	{ Name = "HighWest", X = -58, Z = 136, Rx = 36, Rz = 26, Yaw = 0.25, H = 40, Edge = 8, Rough = 0 },
+	{ Name = "CascadeMid", X = 14, Z = 126, Rx = 46, Rz = 16, Yaw = 0, H = 40, Edge = 8, Rough = 0.8 },
+	{ Name = "HighEast", X = 64, Z = 132, Rx = 28, Rz = 20, Yaw = -0.2, H = 46, Edge = 8, Rough = 0.8 },
+	-- the rim: the cascade's top step and the towering outcrops that frame the town
+	{ Name = "CascadeTop", X = 12, Z = 98, Rx = 76, Rz = 22, Yaw = 0, H = 56, Edge = 9, Rough = 1.2 },
+	{ Name = "RimWest", X = -96, Z = 98, Rx = 40, Rz = 26, Yaw = 0.3, H = 60, Edge = 9, Rough = 1.2 },
+	{ Name = "TowerWest", X = -118, Z = 134, Rx = 25, Rz = 24, Yaw = 0, H = 66, Edge = 9, Rough = 0.8 },
+	{ Name = "WallWest", X = -136, Z = 226, Rx = 22, Rz = 32, Yaw = 0.1, H = 52, Edge = 9, Rough = 0.8 },
+	{ Name = "TowerEast", X = 122, Z = 126, Rx = 28, Rz = 24, Yaw = 0, H = 74, Edge = 10, Rough = 0.8 },
+	{ Name = "WallEast", X = 142, Z = 226, Rx = 22, Rz = 34, Yaw = -0.1, H = 60, Edge = 9, Rough = 0.8 },
+	-- headlands either side of the harbour
+	{ Name = "HeadWest", X = -152, Z = 266, Rx = 36, Rz = 26, Yaw = -0.2, H = 40, Edge = 8, Rough = 1.0 },
+	{ Name = "HeadEast", X = 154, Z = 262, Rx = 38, Rz = 28, Yaw = 0.2, H = 46, Edge = 8, Rough = 1.0 },
+} :: { Ledge }
 
 -- Paths of Kingshaven: sand paths from the spawn and the town square to every shop front,
 -- and trails that climb the terraces to the lighthouse, the lagoon bridge, the west lookout
@@ -98,26 +142,31 @@ export type Path = {
 	To: string?,
 }
 WorldData.Paths = {
-	{ Name = "MainStreet", Width = 12, Material = "Sand", Points = { { 0, 299 }, { 0, 222 }, { 0, 166 } }, To = "Piers" },
-	{ Name = "ShipwrightPath", Width = 8, Material = "Sand", Points = { { 0, 252 }, { 20, 247 }, { 38, 250 } }, Planks = { 1, 2 }, To = "Shipwright" },
-	{ Name = "MerchantPath", Width = 8, Material = "Sand", Points = { { 0, 252 }, { -20, 247 }, { -38, 250 } }, Planks = { 1, 2 }, To = "Merchant" },
-	{ Name = "ArmoryPath", Width = 8, Material = "Sand", Points = { { 30, 120 }, { 55, 120 } }, To = "Armory" },
-	{ Name = "TavernPath", Width = 8, Material = "Sand", Points = { { -30, 120 }, { -57, 120 } }, To = "Tavern" },
-	{ Name = "TradingPostPath", Width = 8, Material = "Sand", Points = { { 0, 80 }, { 0, 43 } }, To = "TradingPost" },
+	-- the harbour level: from the piers to the plaza, then out to the two low ledges
+	{ Name = "MainStreet", Width = 12, Material = "Sand", Points = { { 0, 299 }, { 0, 272 } }, To = "Piers" },
+	{ Name = "ShipwrightPath", Width = 8, Material = "Sand", Ramp = true, Points = { { 12, 264 }, { 34, 262 }, { 48, 261 }, { 64.6, 259.3 } }, To = "Shipwright" },
+	{ Name = "MerchantPath", Width = 8, Material = "Sand", Ramp = true, Bridges = { 2 }, Points = { { -12, 264 }, { -25, 263 }, { -52, 261 }, { -67.6, 259.3 } }, To = "Merchant" },
+	-- stairs up from the low ledges to the mid ledges, and on up to the tavern
+	{ Name = "ArmoryPath", Width = 7, Material = "Sand", Ramp = true, Points = { { 48, 261 }, { 45, 240 }, { 50, 214 }, { 73.7, 201.4 } }, To = "Armory" },
+	{ Name = "TradingPostPath", Width = 7, Material = "Sand", Ramp = true, Points = { { -52, 261 }, { -50, 240 }, { -54, 216 }, { -73.7, 201.4 } }, To = "TradingPost" },
+	{ Name = "TavernPath", Width = 7, Material = "Sand", Ramp = true, Points = { { -73.7, 201.4 }, { -66, 184 }, { -90, 168 }, { -78, 150 }, { -51, 153.2 } }, To = "Tavern" },
+	-- trails from the ledges out over the island
 	{
 		Name = "LighthouseTrail", Width = 7, Material = "Sand", Ramp = true, To = "Lighthouse",
-		Points = { { 0, 54 }, { 22, 50 }, { 32, 22 }, { 28, -28 }, { 46, -74 }, { 50, -112 }, { 22, -140 }, { -14, -158 }, { -30, -190 }, { -20, -222 }, { 0, -234 } },
+		Points = { { -51, 153.2 }, { -30, 140 }, { -36, 112 }, { -40, 80 }, { -20, 44 }, { 10, 10 }, { 28, -28 }, { 46, -74 }, { 50, -112 }, { 22, -140 }, { -14, -158 }, { -30, -190 }, { -20, -222 }, { 0, -234 } },
 	},
+	-- a spur along the rim to the lookout deck over the falls (after its trunk, the trail)
+	{ Name = "LookoutPath", Width = 5, Material = "Sand", Ramp = true, To = "Viewpoint", Points = { { -37.375, 101 }, { -24, 103 }, { -12, 104 } } },
 	{
-		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 10 },
-		Points = { { 28, 86 }, { 70, 74 }, { 120, 64 }, { 170, 50 }, { 215, 34 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
+		Name = "LagoonTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lagoon", Bridges = { 11 },
+		Points = { { 73.7, 201.4 }, { 100, 182 }, { 132, 172 }, { 165, 166 }, { 200, 120 }, { 230, 70 }, { 258, 24 }, { 296, 24 }, { 336, 22 }, { 372, 14 }, { 390, -6 }, { 392, -66 }, { 398, -84 } },
 	},
 	{
 		Name = "WestTrail", Width = 6, Material = "Sand", Ramp = true, To = "Lookout",
-		Points = { { -28, 86 }, { -70, 74 }, { -120, 64 }, { -170, 52 }, { -215, 36 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
+		Points = { { -73.7, 201.4 }, { -100, 184 }, { -134, 177 }, { -170, 170 }, { -205, 128 }, { -240, 70 }, { -260, 22 }, { -302, 12 }, { -340, 4 } },
 	},
-	{ Name = "EastBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { 80, 300 }, { 130, 296 }, { 186, 302 }, { 236, 318 }, { 280, 334 } } },
-	{ Name = "WestBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { -80, 300 }, { -130, 296 }, { -186, 302 }, { -236, 318 }, { -280, 334 } } },
+	{ Name = "EastBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { 80, 300 }, { 130, 306 }, { 186, 318 }, { 236, 330 }, { 280, 340 } } },
+	{ Name = "WestBeachTrail", Width = 6, Material = "Sand", Ramp = true, To = "Beach", Points = { { -80, 300 }, { -130, 306 }, { -186, 318 }, { -236, 330 }, { -280, 340 } } },
 } :: { Path }
 
 -- The paths as straight segments (everything but the bridges): painted onto the terrain
@@ -147,6 +196,10 @@ export type Stream = { Name: string, Width: number, Depth: number, Points: { { n
 WorldData.Streams = {
 	-- from the north-east highlands down two terraces into the lagoon
 	{ Name = "LagoonFalls", Width = 9, Depth = 2, Points = { { 214, -142 }, { 232, -124 }, { 246, -108 }, { 252, -92 }, { 263, -79 }, { 274, -66 }, { 290, -52 } } },
+	-- the town's great cascade: from a spring on the rim down three rock steps into the pool
+	{ Name = "PoolFalls", Width = 13, Depth = 2.5, Points = { { 16, 72 }, { 14, 92 }, { 12, 110 }, { 10, 126 }, { 8, 140 }, { 5, 152 }, { 2, 166 }, { 0, 180 } } },
+	-- a thinner fall from the eastern ledges into the pool
+	{ Name = "EastFalls", Width = 7, Depth = 2, Points = { { 72, 118 }, { 68, 134 }, { 60, 150 }, { 50, 164 }, { 40, 176 }, { 30, 184 } } },
 } :: { Stream }
 
 -- Dredged harbour basin on the south side so ships can moor at the piers
@@ -184,11 +237,14 @@ WorldData.AnchorageSlots = {
 -- walk up) faces local +Z rotated by Yaw. Width is along the front, Depth front-to-back.
 -- The build script places buildings here and the island paths lead to each FrontX/FrontZ.
 WorldData.Shops = ({
-	{ Id = "Shipwright", Title = "SHIPWRIGHT", X = 60, Z = 250, Yaw = -math.pi / 2, Width = 26, Depth = 20 },
-	{ Id = "Merchant", Title = "MERCHANT", X = -60, Z = 250, Yaw = math.pi / 2, Width = 26, Depth = 20 },
-	{ Id = "Armory", Title = "ARMORY", X = 76, Z = 120, Yaw = -math.pi / 2, Width = 22, Depth = 18 },
-	{ Id = "Tavern", Title = "THE RUSTY ANCHOR", X = -80, Z = 120, Yaw = math.pi / 2, Width = 28, Depth = 22 },
-	{ Id = "TradingPost", Title = "TRADING POST", X = 0, Z = 22, Yaw = 0, Width = 24, Depth = 18 },
+	-- low ledges either side of the plaza, by the pool
+	{ Id = "Shipwright", Title = "SHIPWRIGHT", X = 70, Z = 238, Yaw = -0.25, Width = 26, Depth = 20 },
+	{ Id = "Merchant", Title = "MERCHANT", X = -73, Z = 238, Yaw = 0.25, Width = 26, Depth = 20 },
+	-- mid ledges looking down over the pool
+	{ Id = "Armory", Title = "ARMORY", X = 88, Z = 186, Yaw = -0.75, Width = 22, Depth = 18 },
+	-- the tavern up on the high western ledge beside the falls
+	{ Id = "Tavern", Title = "THE RUSTY ANCHOR", X = -60, Z = 132, Yaw = 0.4, Width = 28, Depth = 22 },
+	{ Id = "TradingPost", Title = "TRADING POST", X = -88, Z = 186, Yaw = 0.75, Width = 24, Depth = 18 },
 } :: { Shop })
 for _, shop in WorldData.Shops do
 	local reach = shop.Depth / 2 + 12
@@ -196,12 +252,12 @@ for _, shop in WorldData.Shops do
 	shop.FrontZ = shop.Z + math.cos(shop.Yaw) * reach
 end
 
-WorldData.SpawnPoint = { X = 0, Z = 182 }
+WorldData.SpawnPoint = { X = 0, Z = 281 }
 -- The lighthouse stands on a flat summit (SummitRadius) on top of the northern terraces
 WorldData.Lighthouse = { X = 0, Z = -250, HillHeight = 30, HillRadius = 130, SummitRadius = 30 }
 
 -- No PvP, no cannon damage and no skeletons inside the haven
-WorldData.SafeZone = { X = 0, Z = 160, Radius = 800 }
+WorldData.SafeZone = { X = 0, Z = 220, Radius = 800 }
 
 function WorldData.GetIsland(name: string): Island?
 	for _, island in WorldData.Islands do

@@ -135,6 +135,12 @@ terrain.WaterTransparency = 0.55
 terrain.WaterReflectance = 0.45
 terrain.WaterWaveSize = 0.28
 terrain.WaterWaveSpeed = 12
+-- No grass blades: the base place had Decoration on with GrassLength 0.7, which covered every
+-- Grass voxel in long uniform blades and made the island read like a golf course. The ground
+-- now gets its variety from the material mix (leafy floor, warm meadows, dirt, mud, sandstone)
+-- and from real plants (ferns, bushes, flowers, palms) placed by the build, as in Sea of Thieves.
+terrain.Decoration = false
+terrain.GrassLength = 0.3
 local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
 clouds.Cover = 0.52
 clouds.Density = 0.7

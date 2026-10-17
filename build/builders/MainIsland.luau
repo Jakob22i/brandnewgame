@@ -27,8 +27,8 @@ local VINES = { rgb(52, 122, 44), rgb(64, 138, 50), rgb(44, 108, 42), rgb(74, 14
 local SIGN_TEXT = rgb(246, 232, 200)
 
 -- Part budgets (Kingshaven as a whole stays under ~7000 parts with the jungle)
-local CLIFF_BUDGET = 860 -- terrace cliffs and the lagoon walls
-local COAST_BUDGET = 380 -- sea cliffs
+local CLIFF_BUDGET = 3000 -- terrace cliffs, the town ledges and the lagoon walls
+local COAST_BUDGET = 480 -- sea cliffs and the walls of the town pool
 local BOULDERS = 7
 local SEA_STACKS = 7
 local LANDMARKS = 7
@@ -88,14 +88,17 @@ local function cliffRock(parent: any, rng: any, foot: any, n: any, yb: number, y
 		end
 		y += th
 	end
-	-- a rounded lip of grass hanging over the edge, flush with the terrace above
+	-- a rounded lip of grass hanging over the edge, flush with the terrace above (low steps
+	-- keep their bare rounded stone: a flat grass plate on them reads as a floating slab)
 	local capOut = maxOut + 0.4
-	local capW = width * rng:Range(0.9, 1.0)
-	local capD = capOut + 4
-	local capCF = cf * CF(shift * 0.5, height - 0.15, -capOut + capD / 2) * Angles(0, rng:Range(-0.04, 0.04), 0)
-	P.part(m, { Name = "GrassCap", Size = V(capW, 1.2, capD - 1.4), CFrame = capCF * CF(0, -0.2, 0.7), Mat = "LeafyGrass", Color = capColor })
-	Nature.Blob(m, V(capW + 0.6, 2.0, 3.4), capCF * CF(0, -0.45, -capD / 2 + 1.5), { Name = "GrassCap", Mat = "LeafyGrass", Color = Nature.Shade(capColor, 0.97), CanCollide = true, CanQuery = true })
-	count += 2
+	if height >= 13 then
+		local capW = width * rng:Range(0.9, 1.0)
+		local capD = capOut + 4
+		local capCF = cf * CF(shift * 0.5, height - 0.15, -capOut + capD / 2) * Angles(0, rng:Range(-0.04, 0.04), 0)
+		P.part(m, { Name = "GrassCap", Size = V(capW, 1.2, capD - 1.4), CFrame = capCF * CF(0, -0.2, 0.7), Mat = "LeafyGrass", Color = capColor })
+		Nature.Blob(m, V(capW + 0.6, 2.0, 3.4), capCF * CF(0, -0.45, -capD / 2 + 1.5), { Name = "GrassCap", Mat = "LeafyGrass", Color = Nature.Shade(capColor, 0.97), CanCollide = true, CanQuery = true })
+		count += 2
+	end
 	-- ivy spilling over the lip: hanging curtains of overlapping leafy clumps that taper
 	-- downwards (some long like vines)
 	local curtains = if width > 18 then rng:Int(0, 2) else rng:Int(0, 1)
@@ -224,13 +227,17 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 	end
 	local town = World.Town
 	local lagoon = World.Lagoon
+	local pool = World.Pool
 	local spots = {}
 	for _, c in candidates do
 		local fx, fz, fh, dDown = walk(c[1], c[2], c[3], c[4], 1)
 		local tx, tz, th, dUp = walk(c[1], c[2], c[3], c[4], -1)
 		local height = th - fh
-		if height >= 5 then
-			table.insert(spots, { Fx = fx, Fz = fz, Fh = fh, Th = th, Run = dDown + dUp, Nx = c[3], Nz = c[4], Mx = (fx + tx) / 2, Mz = (fz + tz) / 2, Height = height, Score = math.min(height, 16) + c[5] * 12 + (if nearPath(c[1], c[2]) then 14 else 0) + (if (c[1] - town.X) ^ 2 + (c[2] - town.Z) ^ 2 < (town.Radius + 130) ^ 2 then 10 else 0) + (if lagoon and (c[1] - lagoon.X) ^ 2 + (c[2] - lagoon.Z) ^ 2 < (lagoon.Radius + 40) ^ 2 then 16 else 0) })
+		if height >= 4 then
+			-- the town's ledges and the pool walls come first (they frame every view of the town)
+			local dPool = math.sqrt((c[1] - pool.X) ^ 2 + (c[2] - pool.Z - 30) ^ 2)
+			local townScore = if dPool < 190 then 40 - dPool * 0.08 else 0
+			table.insert(spots, { Fx = fx, Fz = fz, Fh = fh, Th = th, Run = dDown + dUp, Nx = c[3], Nz = c[4], Mx = (fx + tx) / 2, Mz = (fz + tz) / 2, Height = height, Score = math.min(height, 16) + c[5] * 12 + townScore + (if nearPath(c[1], c[2]) then 14 else 0) + (if (c[1] - town.X) ^ 2 + (c[2] - town.Z) ^ 2 < (town.Radius + 130) ^ 2 then 10 else 0) + (if lagoon and (c[1] - lagoon.X) ^ 2 + (c[2] - lagoon.Z) ^ 2 < (lagoon.Radius + 40) ^ 2 then 16 else 0) })
 		end
 	end
 	table.sort(spots, function(a, b)
@@ -273,10 +280,11 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 	local coastParts = 0
 	for _, s in spots do
 		local coast = s.Fh < 2
-		if (coast and (coastParts >= COAST_BUDGET or s.Height < 9)) or (not coast and parts >= CLIFF_BUDGET) then
+		if (coast and (coastParts >= COAST_BUDGET or s.Height < 9)) or (not coast and (parts >= CLIFF_BUDGET or s.Height < 6)) then
 			continue
 		end
-		local width = if s.Height > 20 then rng:Range(24, 32) else rng:Range(15, 23)
+		-- the towering walls get the biggest blocks (fewer, larger pieces)
+		local width = if s.Height > 34 then rng:Range(32, 42) elseif s.Height > 20 then rng:Range(24, 32) else rng:Range(15, 23)
 		local tooClose = false
 		for _, p in placed do
 			local need = (width + p[3]) * 0.42
@@ -328,7 +336,8 @@ local function buildCliffs(model: any, island: any, H: any, World: any, rng: any
 			yt = s.Th
 		end
 		local capMat = H.GetMaterial(tx, tz, s.Th, 0, island)
-		local capColor = if capMat == "LeafyGrass" then rgb(70, 160, 56) elseif capMat == "Sand" then rgb(240, 216, 160) else rgb(98, 182, 68)
+		local capRgb = World.TerrainColors[if capMat == "Grass" or capMat == "Sand" then capMat else "LeafyGrass"]
+		local capColor = rgb(capRgb[1], capRgb[2], capRgb[3])
 		local n = cliffRock(folder, rng, V(s.Fx + nx * 0.8, 0, s.Fz + nz * 0.8), V(nx, 0, nz), yb, yt, s.Run + 0.8, width, capColor)
 		if coast then
 			coastParts += n
@@ -407,6 +416,47 @@ local function buildRocks(model: any, island: any, H: any, World: any, rng: any,
 				placed += 1
 			end
 		end
+	end
+	return parts
+end
+
+-- Rocks of the town's water: rounded stones half sunk along the pool's shores, a little rock
+-- island with a palm in the pool, and boulders on the harbour beach either side of the cut
+local function buildTownRocks(model: any, H: any, World: any, rng: any, clear: { any }): number
+	local folder = P.folder(model, "PoolRocks")
+	local pool = World.Pool
+	local parts = 0
+	local function count(m: any)
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") then
+				parts += 1
+			end
+		end
+	end
+	for _, deg in { 6, 26, 148, 170, 194, 216, 238, 300, 326, 348 } do
+		local a = math.rad(deg + rng:Range(-5, 5))
+		local f = rng:Range(0.86, 0.97)
+		local x, z = pool.X + pool.Rx * f * math.cos(a), pool.Z + pool.Rz * f * math.sin(a)
+		local h = H.GetHeight(x, z)
+		local size = rng:Range(5, 9)
+		count(Nature.SlabStack(folder, CF(x, h - 0.5, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, -h + size * rng:Range(0.3, 0.6), rng, Nature.SANDSTONE, "Sandstone", rng:Next() < 0.4, false))
+	end
+	-- the rock island
+	local ix, iz = pool.X - 13, pool.Z + 3
+	local ih = H.GetHeight(ix, iz)
+	local isle, top = Nature.SlabStack(folder, CF(ix, ih - 0.5, iz) * Angles(0, 0.6, 0), 12, 9, -ih + 3.5, rng, Nature.SANDSTONE, "Sandstone", true, true)
+	count(isle)
+	count(Nature.Palm(folder, V(ix + 1, ih - 0.5 + top - 0.4, iz), rng, 0.8, 0))
+	-- boulders on the harbour beach
+	for _, spec in { { -24, 318, 8 }, { -112, 314, 10 }, { 32, 320, 7 }, { 116, 312, 9 } } do
+		local x, z, size = spec[1], spec[2], spec[3]
+		local h = H.GetHeight(x, z)
+		local m, rtop = Nature.SlabStack(folder, CF(x, h - 1.2, z) * Angles(0, rng:Range(0, math.pi * 2), 0), size * 1.3, size, size * rng:Range(0.6, 0.85), rng, Nature.SANDSTONE, "Sandstone", true, true)
+		count(m)
+		if size >= 9 then
+			count(Nature.Palm(folder, V(x, h - 1.2 + rtop - 0.3, z), rng, 0.9, 0))
+		end
+		table.insert(clear, { X = x, Z = z, R = size * 0.8 })
 	end
 	return parts
 end
@@ -579,8 +629,8 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 					local lx, lz = -smp.Dz * side, smp.Dx * side
 					local ex, ez = smp.X + lx * (half + 0.8), smp.Z + lz * (half + 0.8)
 					local drop = smp.H - H.GetHeight(smp.X + lx * (half + 5), smp.Z + lz * (half + 5))
-					local inTown = (smp.X - town.X) ^ 2 + (smp.Z - town.Z) ^ 2 < (town.Radius - 5) ^ 2
-					if drop > 4 and not inTown and not smp.Stair then
+					local onPlaza = (smp.X - town.X) ^ 2 + (smp.Z - town.Z) ^ 2 < (town.SquareRadius + 6) ^ 2
+					if drop > 4 and not onPlaza and not smp.Stair then
 						local p = V(ex, H.GetHeight(ex, ez), ez)
 						if last and smp.S - lastS < 3 * STEP + 0.5 then
 							ropeFence(fences, last, p, false)
@@ -748,11 +798,14 @@ local function waterfall(parent: any, rng: any, top: any, bottom: any, flow: any
 	local foot = bottom + flow * 2.2
 	waterPart(m, { Name = "FallSheet", Size = V(width, 0.8, (foot - lip).Magnitude), CFrame = P.lookAt((lip + foot) / 2, foot), Color = WATER, Transparency = 0.3, Reflectance = 0.05 })
 	local right = flow:Cross(UP).Unit
-	for _, k in { -1, 1 } do
-		local off = right * k * width * rng:Range(0.15, 0.3) + flow * 0.5
+	-- white water streaks tumbling down the front (more on the wide falls)
+	local streaks = if width >= 10 then { -0.36, -0.12, 0.12, 0.36 } else { -0.22, 0.22 }
+	for i, k in streaks do
+		local off = right * (k + rng:Range(-0.05, 0.05)) * width + flow * (0.5 + (i % 2) * 0.25)
 		local a = lip + off
 		local b = foot + off + flow * 0.4
-		waterPart(m, { Name = "FallStreak", Size = V(width * rng:Range(0.22, 0.34), 0.5, (b - a).Magnitude * rng:Range(0.8, 1)), CFrame = P.lookAt((a + b) / 2, b) * CF(0, 0, -(b - a).Magnitude * 0.05), Mat = "SmoothPlastic", Color = WATER_LIGHT, Transparency = 0.2 })
+		local color = if i % 2 == 0 then FOAM else WATER_LIGHT
+		waterPart(m, { Name = "FallStreak", Size = V(width * rng:Range(0.16, 0.24), 0.5, (b - a).Magnitude * rng:Range(0.75, 1)), CFrame = P.lookAt((a + b) / 2, b) * CF(0, 0, -(b - a).Magnitude * 0.05), Mat = "SmoothPlastic", Color = color, Transparency = 0.12 })
 	end
 	-- the curl of water over the lip
 	Nature.Blob(m, V(width * 1.02, 1.6, 3), CF(top + flow * 0.4 + V(0, 0.1, 0)) * P.CFrame.fromMatrix(V(), right, UP, -flow), { Name = "Lip", Mat = "Glass", Color = WATER_LIGHT, Transparency = 0.15 })
@@ -795,8 +848,13 @@ local function buildStreams(model: any, H: any, World: any, rng: any, clear: { a
 			local a, b = samples[k], samples[k + 1]
 			if a.H - b.H > 1.6 then
 				-- a drop: follow it to the bottom
+				-- (a narrow ledge in the rock face does not break the fall: it carries on when the
+				-- ground drops again within two samples)
 				local j = k + 1
-				while j < #samples and samples[j].H - samples[j + 1].H > 0.5 do
+				local function dropsAt(i: number): boolean
+					return i < #samples and samples[i].H - samples[i + 1].H > 0.5
+				end
+				while dropsAt(j) or (dropsAt(j + 1) and samples[j].H - samples[j + 2].H > 1.2) or (dropsAt(j + 2) and samples[j].H - samples[j + 3].H > 1.2) do
 					j += 1
 				end
 				local bot = samples[j]
@@ -1098,7 +1156,7 @@ end
 
 local LABELS = { Shipwright = "Shipwright", Merchant = "Merchant", Armory = "Armory", Tavern = "Tavern", TradingPost = "Trading Post" }
 
-local function buildSignposts(model: any, World: any, rng: any, clear: { any })
+local function buildSignposts(model: any, H: any, World: any, rng: any, clear: { any })
 	local folder = P.folder(model, "Signposts")
 	local nodes, edges = buildGraph(World)
 	local targets: { [string]: { number } } = {}
@@ -1125,12 +1183,17 @@ local function buildSignposts(model: any, World: any, rng: any, clear: { any })
 		labels[id] = text
 	end
 	local sp = World.SpawnPoint
+	-- at the spawn, on the plaza, at every junction where the stairs climb to the next ledge,
+	-- and at the ends of the boardwalk
 	local posts = {
-		{ At = { sp.X - 10.5, sp.Z + 9 }, To = { "Shipwright", "Merchant", "Piers", "Armory", "Tavern", "TradingPost" } },
-		{ At = { -10, 262 }, To = { "Shipwright", "Merchant", "Piers", "Square" } },
-		{ At = { 9, 60 }, To = { "Lighthouse", "TradingPost", "Square" } },
-		{ At = { 50, 88 }, To = { "Lagoon", "Square" } },
-		{ At = { -50, 88 }, To = { "Lookout", "Square" } },
+		{ At = { sp.X - 10.5, sp.Z + 3 }, To = { "Shipwright", "Merchant", "Armory", "TradingPost", "Tavern", "Piers" } },
+		{ At = { -19, 272 }, To = { "Merchant", "TradingPost", "Tavern", "Piers" } },
+		{ At = { 19, 272 }, To = { "Shipwright", "Armory", "Piers" } },
+		{ At = { -57, 268 }, To = { "Merchant", "TradingPost", "Tavern", "Square" } },
+		{ At = { 40, 268 }, To = { "Shipwright", "Armory", "Lagoon", "Square" } },
+		{ At = { -64, 210 }, To = { "TradingPost", "Tavern", "Lighthouse", "Lookout", "Square" } },
+		{ At = { 64, 210 }, To = { "Armory", "Lagoon", "Square" } },
+		{ At = { -40, 160 }, To = { "Tavern", "Lighthouse", "Square" } },
 		{ At = { 88, 292 }, To = { "Beach", "Piers", "Square" } },
 		{ At = { -88, 292 }, To = { "Beach", "Piers", "Square" } },
 	}
@@ -1143,7 +1206,7 @@ local function buildSignposts(model: any, World: any, rng: any, clear: { any })
 				table.insert(boards, { labels[id] or id, dx, dz })
 			end
 		end
-		signpost(folder, V(post.At[1], World.Town.Height, post.At[2]), boards, rng)
+		signpost(folder, V(post.At[1], H.GetHeight(post.At[1], post.At[2]), post.At[2]), boards, rng)
 		table.insert(clear, { X = post.At[1], Z = post.At[2], R = 4 })
 	end
 end
@@ -1156,11 +1219,12 @@ function MainIsland.Build(parent: any, H: any, World: any, Noise: any, clear: { 
 	end
 	local rng = Noise.Rng(island.Seed * 104729 + 3)
 	-- props along the paths first (they claim their space), then rocks and cliffs
-	buildSignposts(model, World, rng, clear)
+	buildSignposts(model, H, World, rng, clear)
 	buildWalkways(model, H, World, rng)
 	buildBridges(model, H, World, rng, clear)
 	buildTrails(model, H, World, rng, clear)
 	buildStreams(model, H, World, rng, clear)
+	buildTownRocks(model, H, World, rng, clear)
 	buildSummitRocks(model, island, H, World, rng, clear)
 	buildLookout(model, H, World, rng, clear)
 	local cliffParts, cliffs = buildCliffs(model, island, H, World, rng, clear)

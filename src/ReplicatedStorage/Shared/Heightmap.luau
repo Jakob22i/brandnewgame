@@ -4,10 +4,13 @@
 -- Used by: the terrain generator (runtime), ship grounding checks, enemy spawns,
 -- the treasure map UI and the Lune build script (to place trees, rocks and buildings).
 --
--- Kingshaven (the main island) has its own recipe: the town sits in a flat basin on the
--- south side, sandstone terraces with steep cliffs climb towards the lighthouse summit in
--- the north and the sea cliffs in the east and west, beaches open up to the south, and a
--- lagoon is cut into the eastern cliffs. Trails cut smooth ramps through the terraces.
+-- Kingshaven (the main island) has its own recipe: the town wraps around an inner pool in a
+-- basin on the south side. Rounded sandstone ledges (WorldData.Ledges) rise out of the basin
+-- at the town's levels, with towering outcrops on the rim; a cascade drops down three rock
+-- steps into the pool, which drains through a rocky cut to the harbour beach. Beyond the rim,
+-- sandstone terraces climb towards the lighthouse summit in the north and the sea cliffs in
+-- the east and west, and a lagoon is cut into the eastern cliffs. Trails cut smooth ramps
+-- (with plank stairs) through the cliffs.
 
 local Noise = require(script.Parent.Noise)
 local WorldData = require(script.Parent.WorldData)
@@ -18,6 +21,9 @@ local FLOOR = WorldData.FloorLevel
 local SHELF = 0.7 -- how far the underwater shelf reaches, as a fraction of the radius
 local BEACH = 0.12 -- beach width, as a fraction of the radius
 local Town = WorldData.Town
+local Basin = WorldData.Basin
+local Pool = WorldData.Pool
+local PoolCut = WorldData.PoolCut
 local Harbor = WorldData.Harbor
 local Lighthouse = WorldData.Lighthouse
 local Lagoon = WorldData.Lagoon
@@ -33,6 +39,7 @@ local MESAS = {
 	{ X = -235, Z = -165, R = 120, H = 18 }, -- north-west highlands
 	{ X = -330, Z = 40, R = 75, H = 12 }, -- west lookout
 	{ X = 150, Z = -340, R = 60, H = 10 }, -- north bluff
+	{ X = 0, Z = 30, R = 190, H = 34 }, -- highland behind the town's rim
 }
 
 for _, island in WorldData.Islands do
@@ -92,7 +99,124 @@ local function terrace(h: number): number
 	return Town.Height + (i + smooth((f - (1 - RISER)) / RISER)) * STEP
 end
 
--- Kingshaven ---------------------------------------------------------------------------
+-- Kingshaven: the town's ledges, the pool and its cut ---------------------------------------
+
+-- Ledges prepared for fast lookups (cos/sin of the yaw, a bounding square)
+type PreparedLedge = { X: number, Z: number, Rx: number, Rz: number, C: number, S: number, H: number, Edge: number, Rough: number, Bound: number }
+local ledges: { PreparedLedge } = {}
+local ledgeBox = { math.huge, -math.huge, math.huge, -math.huge }
+for _, l in WorldData.Ledges do
+	local bound = math.max(l.Rx, l.Rz) + l.Edge + 8
+	table.insert(ledges, { X = l.X, Z = l.Z, Rx = l.Rx, Rz = l.Rz, C = math.cos(l.Yaw), S = math.sin(l.Yaw), H = l.H, Edge = l.Edge, Rough = l.Rough, Bound = bound })
+	ledgeBox[1] = math.min(ledgeBox[1], l.X - bound)
+	ledgeBox[2] = math.max(ledgeBox[2], l.X + bound)
+	ledgeBox[3] = math.min(ledgeBox[3], l.Z - bound)
+	ledgeBox[4] = math.max(ledgeBox[4], l.Z + bound)
+end
+
+-- Signed distance (studs, negative inside) from (x, z) to the rim of an ellipse, a first-order
+-- estimate that is exact on the rim and scales with the radius in that direction elsewhere.
+-- (lx, lz) = position in the ellipse's own frame
+local function ellipseDistance(lx: number, lz: number, rx: number, rz: number): number
+	local u, v = lx / rx, lz / rz
+	local q = math.sqrt(u * u + v * v)
+	local g = math.sqrt((u / rx) ^ 2 + (v / rz) ^ 2)
+	if g < 1e-6 then
+		return -math.min(rx, rz)
+	end
+	return (q - 1) * q / g
+end
+
+-- The town's rock ledges over the ground height h: flat tops at the ledge level with rounded
+-- lips and steep cliffs falling off the edge (the highest ledge wins)
+local function applyLedges(x: number, z: number, h: number): number
+	if x < ledgeBox[1] or x > ledgeBox[2] or z < ledgeBox[3] or z > ledgeBox[4] then
+		return h
+	end
+	local wob: number? = nil
+	local rough = 0
+	for _, l in ledges do
+		local dx, dz = x - l.X, z - l.Z
+		if math.abs(dx) > l.Bound or math.abs(dz) > l.Bound then
+			continue
+		end
+		if wob == nil then
+			-- one wobble for the outlines (strata line up from ledge to ledge) and one for the tops
+			wob = Noise.Fbm2(x * 0.032, z * 0.032, 6101, 2) + Noise.Value2(x * 0.11, z * 0.11, 6113) * 0.25
+			rough = Noise.Fbm2(x * 0.05, z * 0.05, 6131, 2)
+		end
+		-- the rims wobble more than the shop ledges
+		local d = ellipseDistance(dx * l.C - dz * l.S, dx * l.S + dz * l.C, l.Rx, l.Rz) + (wob :: number) * (5 + 4 * l.Rough)
+		local lh
+		if d <= 0 then
+			lh = l.H + rough * l.Rough * smoothstep(0, 12, -d)
+		else
+			-- the cliff comes down in rounded steps (strata), with a lip at the top
+			local t = math.min(d / l.Edge, 1) * 3
+			local k = math.floor(t)
+			lh = l.H - (l.H + 12) * (k + smooth((t - k) * 1.5)) / 3
+		end
+		if lh > h then
+			h = lh
+		end
+	end
+	return h
+end
+
+-- Distance from (x, z) to the pool's shore and to the cut's banks (negative = in the water)
+local function poolDistance(x: number, z: number): number
+	return ellipseDistance(x - Pool.X, z - Pool.Z, Pool.Rx, Pool.Rz)
+end
+
+local cutBox = { math.huge, -math.huge, math.huge, -math.huge }
+for _, pt in PoolCut.Points do
+	cutBox[1] = math.min(cutBox[1], pt[1] - 30)
+	cutBox[2] = math.max(cutBox[2], pt[1] + 30)
+	cutBox[3] = math.min(cutBox[3], pt[2] - 30)
+	cutBox[4] = math.max(cutBox[4], pt[2] + 30)
+end
+local poolBox = { Pool.X - Pool.Rx - 30, Pool.X + Pool.Rx + 30, Pool.Z - Pool.Rz - 30, Pool.Z + Pool.Rz + 30 }
+
+-- (points may carry their own width as a third number; the cut widens into a creek mouth)
+local function cutDistance(x: number, z: number): number
+	if x < cutBox[1] or x > cutBox[2] or z < cutBox[3] or z > cutBox[4] then
+		return math.huge
+	end
+	local best = math.huge
+	local pts = PoolCut.Points
+	for i = 1, #pts - 1 do
+		local a, b = pts[i], pts[i + 1]
+		local vx, vz = b[1] - a[1], b[2] - a[2]
+		local len2 = vx * vx + vz * vz
+		local t = if len2 > 0 then math.clamp(((x - a[1]) * vx + (z - a[2]) * vz) / len2, 0, 1) else 0
+		local wa, wb = a[3] or PoolCut.Width, b[3] or PoolCut.Width
+		local d = math.sqrt((x - a[1] - vx * t) ^ 2 + (z - a[2] - vz * t) ^ 2) - (wa + (wb - wa) * t) / 2
+		best = math.min(best, d)
+	end
+	return best
+end
+
+-- The pool is a turquoise bowl with steep rock walls; the cut a narrow channel to the sea.
+-- Applied last, so trails and ledges never fill them in.
+local function carveWater(x: number, z: number, h: number): number
+	local inPool = x > poolBox[1] and x < poolBox[2] and z > poolBox[3] and z < poolBox[4]
+	local inCut = x > cutBox[1] and x < cutBox[2] and z > cutBox[3] and z < cutBox[4]
+	if not inPool and not inCut then
+		return h
+	end
+	local w = Noise.Fbm2(x * 0.06, z * 0.06, 917, 2)
+	if inPool then
+		local dp = poolDistance(x, z) + w * 3.5
+		local floor = if dp < 0 then 0.8 + (Pool.Depth - 0.8) * smoothstep(0, -10, dp) else 0.8 + dp * 3.2
+		h = math.min(h, floor)
+	end
+	if inCut then
+		local dc = cutDistance(x, z) + w * 1.5
+		local floor = if dc < 0 then PoolCut.Depth else PoolCut.Depth + dc * 2.6
+		h = math.min(h, floor)
+	end
+	return h
+end
 
 local summitLevel: number? = nil -- terrace height of the lighthouse summit (set below)
 
@@ -117,8 +241,9 @@ local function mainRaw(island: WorldData.Island, x: number, z: number): number
 		h = shelfHeight(t) - cliff * 7 * (1 - smoothstep(0, 0.1, -t))
 	else
 		-- the land rises away from the town basin, highest in the north
-		local tx, tz = x - Town.X, z - Town.Z
-		local dT = math.max(0, math.sqrt(tx * tx + tz * tz) - Town.Radius)
+		local tx, tz = x - Basin.X, z - Basin.Z
+		local dB = math.sqrt(tx * tx + tz * tz)
+		local dT = math.max(0, dB - Basin.Radius)
 		local hmax = 10 + 32 * smoothstep(0.55, 0.05, south) + 12 * smoothstep(-0.3, -0.9, south)
 		local n = Noise.Fbm2(x * 0.011, z * 0.011, island.Seed + 9, 3)
 		local e = Town.Height + hmax * (1 - math.exp(-dT / 80)) * (0.8 + 0.2 * (n + 1))
@@ -132,6 +257,8 @@ local function mainRaw(island: WorldData.Island, x: number, z: number): number
 				e += m.H * smoothstep(m.R, m.R * 0.45, math.sqrt(md))
 			end
 		end
+		-- the floor of the town basin stays at the harbour level (the ledges rise out of it)
+		e += (Town.Height - e) * (1 - smoothstep(Basin.Radius - 10, Basin.Radius + 30, dB))
 
 		-- terraces (sharp on the cliff sides, soft hills towards the beaches)
 		if e > Town.Height then
@@ -174,12 +301,8 @@ local function mainRaw(island: WorldData.Island, x: number, z: number): number
 		end
 	end
 
-	-- the town basin is flat
-	local tx, tz = x - Town.X, z - Town.Z
-	if tx * tx + tz * tz < Town.Radius * Town.Radius then
-		h = Town.Height
-	end
-	return h
+	-- the town's rock ledges and outcrops
+	return applyLedges(x, z, h)
 end
 
 do
@@ -202,7 +325,11 @@ type Track = {
 	MaxZ: number,
 }
 local SAMPLE = 2
+local MAX_RAMP = 0.58 -- steepest trail ramp (about 30 degrees; plank stairs cover the steep parts)
+local LEAD_IN = 3 -- samples at each end of a trail that stay level
 local tracks: { Track } = {}
+
+local applyTracks: (x: number, z: number, h: number) -> number
 
 local function buildTracks()
 	local main = WorldData.GetIsland(WorldData.MainIslandName)
@@ -254,14 +381,19 @@ local function buildTracks()
 				end
 				local seg = track.Segs[segIndex]
 				local t = if seg[6] > 0 then math.clamp((sk - seg[5]) / seg[6], 0, 1) else 0
-				raw[k + 1] = mainRaw(main, seg[1] + (seg[3] - seg[1]) * t, seg[2] + (seg[4] - seg[2]) * t)
+				-- (the ground with the tracks built so far, so a branch meets its trunk level)
+				local sx, sz = seg[1] + (seg[3] - seg[1]) * t, seg[2] + (seg[4] - seg[2]) * t
+				raw[k + 1] = applyTracks(sx, sz, mainRaw(main, sx, sz))
 			end
+			-- the window shrinks towards the ends, so a track ends at the true ground height
+			-- (shop fronts and junctions stay level; the ramp fits between them)
 			local radius = 7 -- samples
 			for _ = 1, 2 do
 				local out = table.create(count)
 				for k = 1, count do
 					local sum, w = 0, 0
-					for j = math.max(1, k - radius), math.min(count, k + radius) do
+					local r = math.min(radius, k - 1, count - k)
+					for j = k - r, k + r do
 						sum += raw[j]
 						w += 1
 					end
@@ -269,15 +401,32 @@ local function buildTracks()
 				end
 				raw = out
 			end
+			-- no stretch steeper than MAX_RAMP, with both ends kept: from the start the ramp
+			-- cuts into the ground ahead, from the end it is built up over the ground behind
+			-- both ends stay level for a few studs (shop fronts, and junctions where a branch
+			-- leaves its trunk), then no stretch is steeper than MAX_RAMP
+			local lead = math.min(LEAD_IN, (count - 1) // 3)
+			for k = 2, lead + 1 do
+				raw[k] = raw[1]
+				raw[count + 1 - k] = raw[count]
+			end
+			local drop = MAX_RAMP * SAMPLE
+			local endH = raw[count]
+			for k = 2, count do
+				raw[k] = math.clamp(raw[k], raw[k - 1] - drop, raw[k - 1] + drop)
+			end
+			raw[count] = endH
+			for k = count - 1, 1, -1 do
+				raw[k] = math.clamp(raw[k], raw[k + 1] - drop, raw[k + 1] + drop)
+			end
 			track.Profile = raw
 			table.insert(tracks, track)
 		end
 	end
 end
-buildTracks()
 
 -- Blends the terrain height towards the trail profiles near trails
-local function applyTracks(x: number, z: number, h: number): number
+function applyTracks(x: number, z: number, h: number): number
 	local bestW = 0
 	local bestH = h
 	for _, track in tracks do
@@ -311,6 +460,8 @@ local function applyTracks(x: number, z: number, h: number): number
 	end
 	return h + (bestH - h) * bestW
 end
+
+buildTracks()
 
 -- Stream beds: a shallow trough along each stream (only on dry land)
 local streamBox = { math.huge, -math.huge, math.huge, -math.huge }
@@ -365,7 +516,7 @@ local function islandHeight(island: WorldData.Island, x: number, z: number): num
 	end
 
 	if island.Kind == "Main" then
-		local h = carveStreams(x, z, applyTracks(x, z, mainRaw(island, x, z)))
+		local h = carveStreams(x, z, carveWater(x, z, applyTracks(x, z, mainRaw(island, x, z))))
 		local hw = rectMask(x, z, Harbor)
 		if hw > 0 then
 			h = math.min(h, h + (Harbor.Depth - h) * hw)
@@ -452,6 +603,31 @@ function Heightmap.GetRoadMaterial(x: number, z: number): string?
 	return nil
 end
 
+-- How far (x, z) is outside the nearest road edge (<= 0 on a road, at most `reach`) and the
+-- material of that road
+local function roadDistance(x: number, z: number, reach: number): (number, string?)
+	local wiggle = Noise.Value2(x * 0.15, z * 0.15, 909) * 0.8
+	local best, material = reach, nil
+	for _, road in WorldData.Roads do
+		local half = road.Width / 2 + wiggle
+		local pad = half + reach
+		if x < math.min(road.X1, road.X2) - pad or x > math.max(road.X1, road.X2) + pad then
+			continue
+		end
+		if z < math.min(road.Z1, road.Z2) - pad or z > math.max(road.Z1, road.Z2) + pad then
+			continue
+		end
+		local d = distToSegment(x, z, road.X1, road.Z1, road.X2, road.Z2) - half
+		if d < best then
+			best, material = d, road.Material
+			if d <= 0 then
+				break
+			end
+		end
+	end
+	return best, material
+end
+
 -- Terrain material name for a column (string so the module stays engine-agnostic)
 function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, island: WorldData.Island?): string
 	if island == nil then
@@ -459,36 +635,62 @@ function Heightmap.GetMaterial(x: number, z: number, h: number, slope: number, i
 	end
 	if island.Kind == "Main" then
 		local tx, tz = x - Town.X, z - Town.Z
-		if tx * tx + tz * tz < Town.SquareRadius * Town.SquareRadius then
+		local plaza = tx * tx + tz * tz
+		if plaza < Town.SquareRadius * Town.SquareRadius then
 			return "Cobblestone"
 		end
-		local road = Heightmap.GetRoadMaterial(x, z)
-		if road then
+		local rd, road = roadDistance(x, z, 4)
+		if road and rd <= 0 then
 			return road
 		end
-		if h > 3 and streamDistance(x, z) < 1.5 then
+		local sd = if h > 3 then streamDistance(x, z) else math.huge
+		if sd < 1.5 then
 			return if slope > 0.7 then "Rock" else "Ground" -- stream bed
 		end
+		local n = Noise.Fbm2(x * 0.045, z * 0.045, 801, 2) -- small patches
 		if slope > 0.7 then
-			-- terrace cliffs are layered sandstone, the sea cliffs below them rock
+			-- cliffs are warm layered sandstone with darker rock strata, rock at the sea
 			if h < 5 + Noise.Value2(x * 0.08, z * 0.08, 515) * 3 then
 				return "Rock"
 			end
+			if math.sin(h * 0.5 + n * 2.5) > 0.62 then
+				return "Rock" -- darker strata
+			end
 			return "Sandstone"
 		end
-		if h < 3.3 then
-			return "Sand"
+		if h < 4.6 then
+			return "Sand" -- the beaches
 		end
 		if slope > 0.45 then
+			return if n > 0.12 then "Rock" else "Ground" -- broken slopes
+		end
+		-- worn dirt along the paths and around the plaza, wet mud along the streams
+		local worn = 2 + n * 1.6
+		if rd < worn or plaza < (Town.SquareRadius + 2.5 + n * 2) ^ 2 then
 			return "Ground"
 		end
-		-- lush leafy jungle floor on the terraces, brighter meadows in and around the town
-		local n = Noise.Fbm2(x * 0.02, z * 0.02, 777, 2)
-		local inTown = tx * tx + tz * tz < (Town.Radius + 15) * (Town.Radius + 15)
-		if n > (if inTown or h < 9 then 0.25 else -0.3) then
-			return "LeafyGrass"
+		if sd < 4 + n * 2 then
+			return "Mud"
 		end
-		return "Grass"
+		-- the ground: leafy jungle floor and warm grass meadows in patches, bare dirt and mud
+		-- in the hollows, sandstone breaking through on the high ledges
+		if n < -0.45 then
+			return if h < 12 then "Mud" else "Ground"
+		end
+		if h < 7.5 then
+			-- the harbour level is sandy ground with tufts of leafy green
+			return if n > 0.02 then "Sand" elseif n < -0.25 then "Ground" else "LeafyGrass"
+		end
+		if n > 0.48 and h > 18 then
+			return "Sandstone"
+		end
+		-- sunny meadow patches in and around the town, deep leafy floor in the wild jungle
+		local big = Noise.Fbm2(x * 0.016, z * 0.016, 777, 2)
+		local townish = plaza < 240 * 240
+		if big * 0.7 + n * 0.6 > (if townish then 0.18 else 0.42) then
+			return "Grass"
+		end
+		return "LeafyGrass"
 	end
 	if h < 3.3 then
 		return "Sand"

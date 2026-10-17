@@ -1571,43 +1571,221 @@ local function welcomeArch(parent: any, x: number, y: number, z: number)
 	return m
 end
 
--- Returns the town model and a list of "keep clear" zones for palms/rocks
+-- Lagoon outpost extras --------------------------------------------------------------------------------
+
+-- A plank lookout deck on stilts at the edge of a rock ledge (front = +Z, out over the drop),
+-- with a railing, a telescope, a flag and a lantern. The best view over the pool to the sea.
+local function rimLookout(parent: any, x: number, z: number, yaw: number, H: any)
+	O.Seed(8080)
+	local m = P.model(parent, "RimLookout")
+	local base = (H.GetHeight(x, z))
+	local origin = CF(x, base, z) * Angles(0, yaw, 0)
+	local function g(lx: number, lz: number): number
+		local p = origin * V(lx, 0, lz)
+		return (H.GetHeight(p.X, p.Z)) - base
+	end
+	local W, D = 14, 10
+	local top = 0
+	for lx = -W / 2, W / 2, 3.5 do
+		top = math.max(top, g(lx, -D / 2), g(lx, 0))
+	end
+	local F = top + 0.7
+	O.Stilts(m, -W / 2, W / 2, -D / 2, D / 2, F - 0.5, g, { Spacing = 7 })
+	O.Deck(m, -W / 2, W / 2, -D / 2, D / 2, F, {})
+	O.Railing(m, V(-W / 2 + 0.3, F, D / 2 - 0.3), V(W / 2 - 0.3, F, D / 2 - 0.3), { Height = 3.2 })
+	O.Railing(m, V(-W / 2 + 0.3, F, -D / 2 + 2), V(-W / 2 + 0.3, F, D / 2 - 0.3), { Height = 3.2 })
+	O.Railing(m, V(W / 2 - 0.3, F, -D / 2 + 2), V(W / 2 - 0.3, F, D / 2 - 0.3), { Height = 3.2 })
+	-- a brass telescope on a tripod
+	local tp = V(2.5, F, D / 2 - 2.2)
+	for k = 0, 2 do
+		local a = k * PI * 2 / 3 + 0.3
+		O.Stick(m, "Tripod", tp + V(0, 3.4, 0), tp + V(math.cos(a) * 1.1, 0, math.sin(a) * 1.1), 0.22, 0.22, O.DARK, "Wood", { CanCollide = false })
+	end
+	local tube = CF(tp + V(0, 3.9, 0)) * Angles(math.rad(8), math.rad(-10), 0)
+	O.CylZ(m, "Telescope", tube * CF(0, 0, 0.4), 3.2, 0.55, rgb(196, 150, 60), "Metal")
+	O.CylZ(m, "Telescope", tube * CF(0, 0, 1.9), 1.0, 0.75, rgb(150, 110, 44), "Metal")
+	O.FlagPole(m, CF(W / 2 - 1.2, F, -D / 2 + 1.2), 11, rgb(176, 40, 40), { Width = 3.6, Height = 2.2 })
+	O.LanternPost(m, CF(-W / 2 + 1.2, F, -D / 2 + 1.2) * Angles(0, PI / 4, 0), 7.5, { Range = 16 })
+	O.Barrel(m, CF(-W / 2 + 1.6, F, D / 2 - 1.8))
+	O.Crate(m, CF(-W / 2 + 3.6, F, D / 2 - 1.6) * Angles(0, 0.3, 0), 1.8)
+	P.transform(m, origin)
+	return m
+end
+
+-- A small wooden rowboat (cf: centre of the bottom boards, bow towards -Z)
+local function rowboat(m: any, boat: any)
+	local hull = rgb(120, 82, 52)
+	O.Part(m, "BoatBottom", V(3.0, 0.5, 9.0), boat * CF(0, 0, 0), O.DARK, "WoodPlanks")
+	for _, sx in { -1, 1 } do
+		O.Part(m, "BoatSide", V(0.4, 1.4, 9.4), boat * CF(sx * 1.6, 0.7, 0) * Angles(0, 0, sx * -0.3), hull, "WoodPlanks")
+	end
+	O.Part(m, "BoatBow", V(3.2, 1.4, 0.4), boat * CF(0, 0.7, -4.6) * Angles(0.3, 0, 0), hull, "WoodPlanks")
+	O.Part(m, "BoatStern", V(3.2, 1.4, 0.4), boat * CF(0, 0.7, 4.6) * Angles(-0.2, 0, 0), hull, "WoodPlanks")
+	O.Part(m, "BoatSeat", V(3.0, 0.3, 1.0), boat * CF(0, 1.0, 0.8), O.Jitter(rgb(150, 110, 72), 0.05), "WoodPlanks")
+	O.Stick(m, "Oar", (boat * CF(-0.4, 1.3, -1.5)).Position, (boat * CF(0.8, 0.8, 3.2)).Position, 0.25, 0.25, rgb(170, 130, 86), "Wood", { CanCollide = false })
+end
+
+-- Harbour clutter on the quay: stacked cargo, barrels, sacks, a net rack and lantern posts
+-- along the street up from the piers (cf positions are on the ground)
+local function harbourClutter(parent: any, H: any)
+	O.Seed(2468)
+	local m = P.model(parent, "QuayCargo")
+	local function at(x: number, z: number, yaw: number?): any
+		return CF(x, (H.GetHeight(x, z)), z) * Angles(0, yaw or 0, 0)
+	end
+	-- cargo piles: { x, z, yaw, kind }
+	local piles = {
+		{ -22, 289, 0.2, "Barrels" },
+		{ 23, 288, -0.3, "Crates" },
+		{ -58, 289, 0.5, "Crates" },
+		{ 50, 286, -0.2, "Barrels" },
+		{ -12, 279, 0.1, "Sacks" },
+		{ 13, 281, -0.1, "Barrels" },
+		{ 100, 288, -0.4, "Crates" },
+		{ -102, 288, 0.3, "Barrels" },
+	}
+	for _, p in piles do
+		local cf = at(p[1], p[2], p[3])
+		if p[4] == "Barrels" then
+			O.Barrel(m, cf * CF(-1.2, 0, 0))
+			O.Barrel(m, cf * CF(1.1, 0, 0.3), { Color = rgb(150, 100, 60) })
+			O.Barrel(m, cf * CF(0, 0, -1.9), { Scale = 0.9 })
+			O.Barrel(m, cf * CF(-0.1, 2.6, -0.4), { Scale = 0.8 })
+			O.Crate(m, cf * CF(2.6, 0, -1.8) * Angles(0, 0.4, 0), 1.8)
+		elseif p[4] == "Crates" then
+			O.Crate(m, cf * CF(-1.3, 0, 0) * Angles(0, 0.1, 0), 2.4)
+			O.Crate(m, cf * CF(1.3, 0, 0.2) * Angles(0, -0.2, 0), 2.2)
+			O.Crate(m, cf * CF(-0.6, 2.4, 0) * Angles(0, 0.5, 0), 2.0)
+			O.Sack(m, cf * CF(2.8, 0, 1.6))
+			O.RopeCoil(m, cf * CF(-2.8, 0, 1.8))
+		else
+			O.Sack(m, cf * CF(-0.8, 0, 0))
+			O.Sack(m, cf * CF(0.7, 0, 0.4))
+			O.Sack(m, cf * CF(0, 1.2, 0.1))
+			O.Barrel(m, cf * CF(2.2, 0, -0.6), { Scale = 0.85 })
+		end
+	end
+	-- a net drying rack between two posts
+	for _, spec in { { -62, 275, 0.3 }, { 62, 274, -0.3 } } do
+		local cf = at(spec[1], spec[2], spec[3])
+		for _, sx in { -3, 3 } do
+			O.Part(m, "RackPost", V(0.5, 5.4, 0.5), cf * CF(sx, 2.2, 0), O.Jitter(O.DARK, 0.06), "Wood")
+		end
+		O.Part(m, "RackBar", V(6.8, 0.4, 0.4), cf * CF(0, 4.7, 0), O.DARK, "Wood")
+		O.Net(m, cf * CF(0, 3.0, 0), 5.6, 3.2)
+		O.Barrel(m, cf * CF(4.4, 0, 1.4), { Scale = 0.8 })
+	end
+	-- rowboats pulled up on the beach either side of the piers
+	for _, spec in { { 24, 320, 0.5 }, { -98, 318, -0.4 }, { 104, 322, 0.9 } } do
+		local x, z = spec[1], spec[2]
+		rowboat(m, CF(x, (H.GetHeight(x, z)) + 0.15, z) * Angles(0, spec[3], 0) * Angles(0, 0, 0.12))
+	end
+	-- lantern posts lining the street from the arch to the plaza
+	for _, spec in { { -8.5, 278, -PI / 2 }, { 8.5, 270, PI / 2 } } do
+		O.LanternPost(m, at(spec[1], spec[2], spec[3]), 8, { Range = 18, Brightness = 1.2 })
+	end
+	return m
+end
+
+-- A wooden railing along the pool's rocky lip below the plaza (where the drop is high)
+local function poolRail(parent: any, H: any, Pool: any)
+	local m = P.model(parent, "PoolRail")
+	local last = nil
+	for deg = 38, 118, 8 do
+		local a = math.rad(deg)
+		local x = Pool.X + (Pool.Rx + 3.5) * math.cos(a)
+		local z = Pool.Z + (Pool.Rz + 3.5) * math.sin(a)
+		local h = (H.GetHeight(x, z))
+		local p = V(x, h, z)
+		if h > 3.5 then
+			if last then
+				O.Railing(m, last, p, { Height = 3, Spacing = 5, Rope = true })
+			end
+			last = p
+		else
+			last = nil
+		end
+	end
+	return m
+end
+
+-- A little landing stage on the pool: stairs down the lip from the plaza and a floating plank
+-- dock with a moored rowboat
+local function poolDock(parent: any, H: any, Pool: any)
+	O.Seed(1357)
+	local m = P.model(parent, "PoolDock")
+	local a = math.rad(64)
+	local lip = V(Pool.X + (Pool.Rx + 4) * math.cos(a), 0, Pool.Z + (Pool.Rz + 4) * math.sin(a))
+	local inward = V(Pool.X - lip.X, 0, Pool.Z - lip.Z).Unit
+	local top = (H.GetHeight(lip.X, lip.Z))
+	-- frame: +Z points into the pool
+	local origin = P.CFrame.fromMatrix(V(lip.X, top, lip.Z), V(0, 1, 0):Cross(inward), V(0, 1, 0), inward)
+	local deckY = 1.1
+	local run = O.Stairs(m, CF(0, 0, 0), 4.5, top - deckY)
+	-- the floating dock beyond the stairs
+	local z0, z1 = run - 0.2, run + 12
+	O.Deck(m, -3.5, 3.5, z0, z1, deckY - top, { AlongZ = true, MaxLen = 12 })
+	for _, sx in { -3.2, 3.2 } do
+		for _, sz in { z0 + 1, z1 - 1 } do
+			P.pillar(m, sx, sz, -8 - top, deckY - top + 1.2, 0.9, { Name = "Piling", Mat = "Wood", Color = O.Jitter(rgb(100, 74, 52), 0.08) })
+		end
+	end
+	O.Bollard(m, CF(2.6, deckY - top, z1 - 2))
+	-- a rowboat moored alongside
+	rowboat(m, CF(6.6, deckY - top - 1.0, (z0 + z1) / 2) * Angles(0, 0.06, 0))
+	O.Lantern(m, CF(-3.2, deckY - top + 3.2, z1 - 1) , { Range = 14 })
+	O.Part(m, "LanternPole", V(0.4, 3.4, 0.4), CF(-3.2, deckY - top + 1.6, z1 - 1), O.DARK, "Wood")
+	P.transform(m, origin)
+	return m, lip
+end
+
+-- Returns the town model and a list of "keep clear" zones for palms/rocks: circles
+-- { X, Z, R } and turned rectangles { X, Z, R, Hx, Hz, C, S } (see Nature.Blocked)
 function Town.Build(parent: any, H: any, World: any)
 	local town = P.model(parent, "Kingshaven")
 	local clear = {}
 	local function keep(x: number, z: number, r: number)
 		table.insert(clear, { X = x, Z = z, R = r })
 	end
+	-- a rectangle around local (lx0..lx1, lz0..lz1) of a frame at (x, z) turned by yaw
+	local function keepRect(x: number, z: number, yaw: number, lx0: number, lx1: number, lz0: number, lz1: number)
+		local c, s = math.cos(yaw), math.sin(yaw)
+		local mx, mz = (lx0 + lx1) / 2, (lz0 + lz1) / 2
+		local hx, hz = (lx1 - lx0) / 2, (lz1 - lz0) / 2
+		table.insert(clear, { X = x + mx * c + mz * s, Z = z - mx * s + mz * c, R = math.sqrt(hx * hx + hz * hz), Hx = hx, Hz = hz, C = c, S = s })
+	end
 	local function ground(x: number, z: number): number
 		return (H.GetHeight(x, z))
 	end
+	local T = World.Town
 
-	-- Shops ---------------------------------------------------------------------------------
+	-- Shops: the building, its porch and stairs and the patch in front stay clear; the jungle
+	-- grows right up to the side and back walls
 	for _, shop in World.Shops do
 		buildShop(town, shop, H)
-		keep(shop.X, shop.Z, math.max(shop.Width, shop.Depth) * 0.75 + 8)
+		keepRect(shop.X, shop.Z, shop.Yaw, -shop.Width / 2 - 1.5, shop.Width / 2 + 1.5, -shop.Depth / 2 - 1.5, shop.Depth / 2 + 15)
 		if shop.FrontX and shop.FrontZ then
-			keep(shop.FrontX, shop.FrontZ, 7)
+			keep(shop.FrontX, shop.FrontZ, 6)
 		end
 	end
 
-	-- The square: statue, market stalls --------------------------------------------------------------
-	local T = World.Town
+	-- The plaza: statue, market stalls round its edge -------------------------------------------------
 	statue(town, T.X, ground(T.X, T.Z), T.Z)
-	keep(T.X, T.Z, 16)
+	keep(T.X, T.Z, T.SquareRadius + 2)
 	local stalls = {
-		{ 34, 152, -35, rgb(206, 56, 48), "Fruit" },
-		{ -34, 152, 35, rgb(40, 140, 190), "Fish" },
-		{ 34, 86, -145, rgb(230, 170, 40), "Cloth" },
-		{ -34, 86, 145, rgb(60, 150, 90), "Bottles" },
+		{ -13, 243, rgb(206, 56, 48), "Fruit" },
+		{ 13, 243, rgb(40, 140, 190), "Fish" },
+		{ -21, 255, rgb(230, 170, 40), "Cloth" },
+		{ 21, 255, rgb(60, 150, 90), "Bottles" },
 	}
 	O.Seed(31337)
 	for _, s in stalls do
-		stall(town, CF(s[1], ground(s[1], s[2]), s[2]) * Angles(0, math.rad(s[3]), 0), s[4], rgb(244, 236, 220), s[5])
-		keep(s[1], s[2], 8)
+		local yaw = math.atan2(T.X - s[1], T.Z - s[2])
+		stall(town, CF(s[1], ground(s[1], s[2]), s[2]) * Angles(0, yaw, 0), s[3], rgb(244, 236, 220), s[4])
+		keep(s[1], s[2], 6)
 	end
 
-	-- Spawn: a compass rose on the road south of the square, a signpost to every shop ------------------
+	-- Spawn: a compass rose on the street just south of the plaza --------------------------------------
 	local sp = World.SpawnPoint
 	local sy = ground(sp.X, sp.Z)
 	local spawn = O.Part(town, "TownSpawn", V(10, 1, 10), CF(sp.X, sy - 0.3, sp.Z), rgb(196, 170, 120), "Cobblestone", { Class = "SpawnLocation" })
@@ -1621,22 +1799,23 @@ function Town.Build(parent: any, H: any, World: any)
 		O.Part(town, "CompassPoint", V(0.9, 0.3, 6.6), CF(sp.X, sy + 0.32, sp.Z) * Angles(0, i * PI / 4, 0) * Angles(0, PI / 4, 0), col, "SmoothPlastic", { CanCollide = false })
 	end
 	O.Ball(town, "CompassHub", V(sp.X, sy + 0.4, sp.Z), 0.8, O.BRASS, "Metal", { CanCollide = false })
-	keep(sp.X, sp.Z, 10)
+	keep(sp.X, sp.Z, 8)
 
-	-- Cottages lining the main street ------------------------------------------------------------------
+	-- Cottages tucked on the ledges between the shops ------------------------------------------------
 	local cottages = {
-		{ Name = "Cottage", X = -30, Z = 210, Yaw = PI / 2, Roof = "Thatch", Walls = O.HONEY, Shutter = rgb(60, 120, 70), Props = "Washing" },
-		{ Name = "Cottage", X = 31, Z = 204, Yaw = -PI / 2, Roof = "Shingle", RoofColors = O.RED_ROOF, Walls = O.DRIFT, Shutter = rgb(44, 110, 150), DoorX = 2.2, Chimney = true },
-		{ Name = "Cottage", X = -30, Z = 281, Yaw = PI / 2, Roof = "Shingle", RoofColors = O.TEAL_ROOF, Walls = O.WOOD, Shutter = rgb(170, 70, 50), DoorX = 2.2, Props = "Fisher" },
+		{ Name = "Cottage", X = -80, Z = 280, Yaw = 0.12, Roof = "Thatch", Walls = O.HONEY, Shutter = rgb(60, 120, 70), Props = "Washing" },
+		{ Name = "Cottage", X = 82, Z = 279, Yaw = -0.12, Roof = "Shingle", RoofColors = O.RED_ROOF, Walls = O.DRIFT, Shutter = rgb(44, 110, 150), DoorX = 2.2, Chimney = true },
+		{ Name = "Cottage", X = -100, Z = 250, Yaw = 0.6, Roof = "Shingle", RoofColors = O.SLATE, Walls = O.TEAL, Shutter = rgb(200, 150, 60), DoorX = -2.2, Props = "Fisher" },
+		{ Name = "Cottage", X = 100, Z = 248, Yaw = -0.6, Roof = "Thatch", Walls = O.WOOD, Shutter = rgb(150, 50, 44), Props = "Washing" },
 	}
 	for _, c in cottages do
 		cottage(town, c, H)
-		keep(c.X, c.Z, 13)
+		keepRect(c.X, c.Z, c.Yaw, -7.5, 7.5, -6.5, 12)
 	end
 
-	-- Welcome arch on the road to the piers
+	-- Welcome arch on the street to the piers
 	welcomeArch(town, 0, ground(0, 292), 292)
-	keep(0, 292, 14)
+	keep(0, 292, 12)
 
 	-- Piers and boardwalk ---------------------------------------------------------------------------------
 	for pi, pd in World.Piers do
@@ -1653,15 +1832,32 @@ function Town.Build(parent: any, H: any, World: any)
 		keep(pd.X, 326, 11)
 	end
 
-	-- A campfire west of the main street, a vegetable garden to the east
-	campfire(town, -98, 186, H)
-	keep(-98, 186, 10)
-	garden(town, 100, 192, 0.3, H)
-	keep(100, 192, 12)
+	-- Cargo and nets on the quay, a railing along the pool's lip, a landing stage on the pool
+	harbourClutter(town, H)
+	for _, spot in { { -22, 289 }, { 23, 288 }, { -58, 289 }, { 50, 286 }, { -12, 279 }, { 13, 281 }, { 100, 288 }, { -102, 288 }, { -62, 275 }, { 62, 274 }, { 24, 320 }, { -98, 318 }, { 104, 322 } } do
+		keep(spot[1], spot[2], 5)
+	end
+	poolRail(town, H, World.Pool)
+	local _, lip = poolDock(town, H, World.Pool)
+	keep(lip.X, lip.Z, 6)
 
-	-- A lookout tower over the harbour, east of the piers
-	watchtower(town, 112, 280, 0.2, H)
-	keep(112, 280, 15)
+	-- A lookout deck on the rim beside the lighthouse trail: the view over the falls, the pool
+	-- and the town to the sea (the trees in front of it stay low)
+	rimLookout(town, -6, 110, 0, H)
+	keep(-6, 110, 11)
+	for _, spot in { { 2, 122, 9 }, { 0, 136, 9 }, { -2, 150, 8 }, { 4, 98, 7 }, { -16, 124, 7 }, { 22, 124, 7 } } do
+		keep(spot[1], spot[2], spot[3])
+	end
+
+	-- A campfire on the high eastern ledge, a vegetable garden behind the shipwright
+	campfire(town, 60, 128, H)
+	keep(60, 128, 9)
+	garden(town, 92, 226, -0.4, H)
+	keepRect(92, 226, -0.4, -9, 9, -7, 7)
+
+	-- A lookout tower on the eastern headland, over the harbour
+	watchtower(town, 150, 270, -0.3, H)
+	keep(150, 270, 9)
 
 	-- Lighthouse on the northern hill
 	local lh = World.Lighthouse
