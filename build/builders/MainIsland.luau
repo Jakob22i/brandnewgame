@@ -505,6 +505,8 @@ end
 
 -- Paths: helpers ------------------------------------------------------------------------------
 
+local stairFlights: (folder: any, H: any, World: any, path: any, skip: { [number]: boolean }, rng: any, clear: { any }) -> { { number } }
+
 -- Walks a polyline in steps of `step` studs, calling fn(x, z, dirX, dirZ, segIndex, s)
 local function walkPath(points: { { number } }, step: number, skip: { [number]: boolean }, fn: (number, number, number, number, number, number) -> ())
 	local s = 0
@@ -547,6 +549,130 @@ local function ropeFence(parent: any, a: any, b: any, postA: boolean)
 	P.beam(parent, a + V(0, 2.4, 0), b + V(0, 2.4, 0), 0.22, { Name = "Rope", Mat = "Fabric", Color = ROPE, CanCollide = false })
 end
 
+-- Plank stair flights ------------------------------------------------------------------------
+
+-- One straight flight from a to b (points on the ground): treads at an even rise along the
+-- line between the ends (each a solid block reaching down into the ramp, so no gaps show), a
+-- stringer along each side, a hidden walking ramp through the treads and a railing on every
+-- side that is open to a drop (none against the rock of a cutting).
+local function stairFlight(parent: any, H: any, rng: any, a: any, b: any, width: number, riseStep: number, wooden: boolean): number
+	local lo, hi = a, b
+	if b.Y < a.Y then
+		lo, hi = b, a
+	end
+	local d = flat(hi - lo)
+	local len = d.Magnitude
+	local dir = d.Unit
+	local rgt = dir:Cross(UP)
+	local rise = hi.Y - lo.Y
+	local n = math.max(2, math.ceil(rise / riseStep))
+	local run, h = len / n, rise / n
+	local half = width / 2
+	local m = P.model(parent, "StairFlight")
+	local count = 0
+	local function lineAt(t: number): any
+		return lo + dir * (len * t) + V(0, rise * t, 0)
+	end
+	for k = 1, n do
+		local c = lo + dir * (run * (k - 0.5))
+		local top = lo.Y + h * k
+		local blockH = h + 2.2
+		P.part(m, { Name = "Step", Size = V(width - 0.2 + rng:Range(-0.12, 0.12), blockH, run + 0.1), CFrame = P.CFrame.fromMatrix(V(c.X, top - blockH / 2, c.Z), rgt, UP, -dir) * Angles(0, rng:Range(-0.012, 0.012), 0), Mat = "WoodPlanks", Color = pick(rng, PLANKS), CanCollide = false })
+		count += 1
+	end
+	-- the walking surface: a hidden slab whose top runs just under the tread nosings
+	local mid = (lo + hi) / 2
+	P.part(m, { Name = "StairRamp", Size = V(width, 0.6, (hi - lo).Magnitude + 0.4), CFrame = P.lookAt(mid, hi) * CF(0, -0.05, 0), Transparency = 1, Mat = "Wood", Color = DARK_WOOD, CanQuery = false })
+	count += 1
+	for _, sd in { -1, 1 } do
+		local off = rgt * sd * (half + 0.1)
+		P.plank(m, lo + off + V(0, h * 0.5 - 0.45, 0) - dir * 0.2, hi + off + V(0, h * 0.5 - 0.45, 0) + dir * 0.1, 0.5, 1.2, { Name = "Stringer", Mat = "Wood", Color = DARK_WOOD })
+		count += 1
+		-- railing posts where this side is open (the ground beside the flight is not a wall)
+		local posts = math.max(1, math.ceil(len / (if wooden then 3.6 else 6)))
+		local last = nil
+		for k = 0, posts do
+			local t = k / posts
+			local p = lineAt(t) + off + V(0, h * 0.5, 0)
+			local side = lineAt(t) + rgt * sd * (half + 2.5)
+			local wall = H.GetHeight(side.X, side.Z) > lineAt(t).Y + 2.2
+			if wall then
+				last = nil
+				continue
+			end
+			if wooden then
+				P.part(m, { Name = "RailPost", Size = V(0.5, 3.4, 0.5), CFrame = CF(p + V(0, 1.4, 0)), Mat = "Wood", Color = Nature.Shade(DARK_WOOD, rng:Range(0.92, 1.08)) })
+				if last then
+					P.plank(m, last + V(0, 3.0, 0), p + V(0, 3.0, 0), 0.45, 0.4, { Name = "Rail", Mat = "Wood", Color = WOOD })
+					count += 1
+				end
+			else
+				P.part(m, { Name = "RailPost", Shape = "Cylinder", Size = V(3.4, 0.55, 0.55), CFrame = CF(p + V(0, 1.4, 0)) * Angles(0, 0, math.pi / 2), Mat = "Wood", Color = DARK_WOOD })
+				if last then
+					P.beam(m, last + V(0, 2.7, 0), p + V(0, 2.7, 0), 0.22, { Name = "Rope", Mat = "Fabric", Color = ROPE, CanCollide = false })
+					count += 1
+				end
+			end
+			count += 1
+			last = p
+		end
+	end
+	return count
+end
+
+-- Finds the steep stretches of a ramp path (at 1-stud samples) and builds a straight flight on
+-- each piece of them between two path points. Returns the covered stretches { s0, s1 }.
+function stairFlights(folder: any, H: any, World: any, path: any, skip: { [number]: boolean }, rng: any, clear: { any }): { { number } }
+	local samples = {}
+	walkPath(path.Points, 1, skip, function(x, z, dx, dz, seg, s)
+		table.insert(samples, { X = x, Z = z, Seg = seg, S = s, H = H.GetHeight(x, z) })
+	end)
+	local town = World.Town
+	local covered = {}
+	local runs = {}
+	local cur = nil
+	for k = 2, #samples - 1 do
+		local a, b = samples[k - 1], samples[k + 1]
+		local steep = b.S - a.S < 2.5 and math.abs(b.H - a.H) / (b.S - a.S) > 0.2
+		if steep then
+			if cur and samples[k].S - cur[#cur].S <= 3.1 then
+				table.insert(cur, samples[k])
+			else
+				cur = { samples[k] }
+				table.insert(runs, cur)
+			end
+		end
+	end
+	for _, run in runs do
+		-- split at the path's corners: one straight flight per segment
+		local pieces = {}
+		for _, smp in run do
+			local last = pieces[#pieces]
+			if last and last[#last].Seg == smp.Seg then
+				table.insert(last, smp)
+			else
+				table.insert(pieces, { smp })
+			end
+		end
+		for _, piece in pieces do
+			local a, b = piece[1], piece[#piece]
+			-- each flight reaches to its corner (or the end of the steep stretch) on both ends
+			local pa, pb = V(a.X, a.H, a.Z), V(b.X, b.H, b.Z)
+			if (pb - pa).Magnitude < 2.5 or math.abs(pb.Y - pa.Y) < 0.8 then
+				continue
+			end
+			local inTown = (a.X - town.X) ^ 2 + (a.Z - town.Z) ^ 2 < (town.Radius + 30) ^ 2
+			stairFlight(folder, H, rng, pa, pb, path.Width, if inTown then 0.8 else 1.0, inTown)
+			table.insert(covered, { a.S, b.S })
+			for t = 0, 1, 0.25 do
+				local p = pa:Lerp(pb, t)
+				table.insert(clear, { X = p.X, Z = p.Z, R = path.Width / 2 + 2 })
+			end
+		end
+	end
+	return covered
+end
+
 -- Plank stairs on the steep parts of the trail ramps, rope fences along drops, lanterns
 local function buildTrails(model: any, H: any, World: any, rng: any, clear: { any })
 	local folder = P.folder(model, "Trails")
@@ -569,64 +695,15 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 		walkPath(path.Points, STEP, skip, function(x, z, dx, dz, seg, s)
 			table.insert(samples, { X = x, Z = z, Dx = dx, Dz = dz, Seg = seg, S = s, H = H.GetHeight(x, z) })
 		end)
-		-- stairs where the ramp is steep
+		-- plank stair flights on the steep stretches of the ramp
 		if path.Ramp then
-			local run = {}
-			local function flush()
-				if #run >= 4 then
-					local stair = P.model(stairsFolder, path.Name .. "Stairs")
-					for k, smp in ipairs(run) do
+			for _, f in stairFlights(stairsFolder, H, World, path, skip, rng, clear) do
+				for _, smp in samples do
+					if smp.S >= f[1] - 1 and smp.S <= f[2] + 1 then
 						smp.Stair = true
-						local dir = V(smp.Dx, 0, smp.Dz)
-						local h0 = H.GetHeight(smp.X - smp.Dx * 1.0, smp.Z - smp.Dz * 1.0)
-						local h1 = H.GetHeight(smp.X + smp.Dx * 1.0, smp.Z + smp.Dz * 1.0)
-						local top = math.max(h0, h1, smp.H) + 0.3
-						local cf = frame(V(smp.X, top - 0.6, smp.Z), dir)
-						P.part(stair, { Name = "Step", Size = V(path.Width - 0.6, 1.2, 1.9), CFrame = cf * Angles(0, rng:Range(-0.03, 0.03), 0), Mat = "WoodPlanks", Color = pick(rng, PLANKS) })
-						-- rope rail posts every few steps
-						if k % 5 == 1 or k == #run then
-							for _, side in { -1, 1 } do
-								local p = V(smp.X, top - 0.3, smp.Z) + dir:Cross(UP) * side * (half + 0.2)
-								P.part(stair, { Name = "RailPost", Size = V(0.55, 3.4, 0.55), CFrame = CF(p + V(0, 1.2, 0)), Mat = "Wood", Color = DARK_WOOD })
-								smp["Post" .. side] = p
-							end
-						end
-					end
-					-- ropes between the posts
-					for _, side in { -1, 1 } do
-						local last = nil
-						for _, smp in ipairs(run) do
-							local p = smp["Post" .. side]
-							if p then
-								if last then
-									P.beam(stair, last + V(0, 2.6, 0), p + V(0, 2.6, 0), 0.22, { Name = "Rope", Mat = "Fabric", Color = ROPE, CanCollide = false })
-								end
-								last = p
-							end
-						end
-					end
-					local mid = run[math.floor(#run / 2) + 1]
-					table.insert(clear, { X = mid.X, Z = mid.Z, R = #run * STEP / 2 + half })
-				end
-				run = {}
-			end
-			for k = 1, #samples do
-				local a = samples[math.max(1, k - 1)]
-				local b = samples[math.min(#samples, k + 1)]
-				local ds = math.max(0.1, b.S - a.S)
-				local slope = math.abs(b.H - a.H) / ds
-				local smp = samples[k]
-				local sameLine = #run == 0 or (smp.S - run[#run].S) < STEP * 1.5
-				if slope > 0.2 and sameLine then
-					table.insert(run, smp)
-				else
-					flush()
-					if slope > 0.2 then
-						table.insert(run, smp)
 					end
 				end
 			end
-			flush()
 		end
 		-- rope fences along drops beside the trails (outside the town)
 		if path.Ramp then
@@ -671,6 +748,102 @@ local function buildTrails(model: any, H: any, World: any, rng: any, clear: { an
 			end
 		end
 	end
+end
+
+-- Railings along the cliff edges of the town's shop ledges: walks the outline of every flat
+-- ledge (WorldData.Ledges with Rough = 0), finds the real edge on the terrain along the outward
+-- normal (the outlines wobble) and puts a post wherever the ground falls away by more than a
+-- few studs. Neighbouring posts are joined by a rail and a rope; gaps are left where the paths
+-- and stairs come up, and around the buildings.
+local function ledgeRailings(model: any, H: any, World: any, rng: any, clear: { any }): number
+	local folder = P.folder(model, "LedgeRailings")
+	local segs = {}
+	for _, path in World.Paths do
+		for i = 1, #path.Points - 1 do
+			table.insert(segs, { path.Points[i], path.Points[i + 1], path.Width / 2 + 1.8 })
+		end
+	end
+	local function nearPath(x: number, z: number): boolean
+		for _, sg in segs do
+			local a, b = sg[1], sg[2]
+			local vx, vz = b[1] - a[1], b[2] - a[2]
+			local len2 = vx * vx + vz * vz
+			local t = if len2 > 0 then math.clamp(((x - a[1]) * vx + (z - a[2]) * vz) / len2, 0, 1) else 0
+			if (a[1] + vx * t - x) ^ 2 + (a[2] + vz * t - z) ^ 2 < sg[3] * sg[3] then
+				return true
+			end
+		end
+		return false
+	end
+	local function nearBuilding(x: number, z: number): boolean
+		for _, c in clear do
+			local dx, dz = x - c.X, z - c.Z
+			if dx * dx + dz * dz < c.R * c.R then
+				if c.Hx then
+					local lx = dx * c.C - dz * c.S
+					local lz = dx * c.S + dz * c.C
+					if math.abs(lx) < c.Hx and math.abs(lz) < c.Hz then
+						return true
+					end
+				elseif c.R >= 6 then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local count = 0
+	for _, l in World.Ledges do
+		if l.Rough > 0 then
+			continue
+		end
+		local C, S = math.cos(l.Yaw), math.sin(l.Yaw)
+		local perim = math.pi * (3 * (l.Rx + l.Rz) - math.sqrt((3 * l.Rx + l.Rz) * (l.Rx + 3 * l.Rz)))
+		local n = math.floor(perim / 4)
+		local posts = {}
+		for k = 0, n - 1 do
+			local th = k / n * math.pi * 2
+			local lx, lz = l.Rx * math.cos(th), l.Rz * math.sin(th)
+			local nx, nz = math.cos(th) / l.Rx, math.sin(th) / l.Rz
+			local nl = math.sqrt(nx * nx + nz * nz)
+			nx, nz = nx / nl, nz / nl
+			-- to world (the inverse of the Heightmap's turn by the ledge's yaw)
+			local px, pz = l.X + lx * C + lz * S, l.Z - lx * S + lz * C
+			local ox, oz = nx * C + nz * S, -nx * S + nz * C
+			local edge = nil
+			for step = -10, 10, 0.5 do
+				local x, z = px + ox * step, pz + oz * step
+				local h = H.GetHeight(x, z)
+				if math.abs(h - l.H) < 0.6 then
+					edge = { x, z }
+				elseif edge and h < l.H - 0.8 then
+					break
+				end
+			end
+			if edge then
+				local ex, ez = edge[1] - ox * 1.0, edge[2] - oz * 1.0
+				local drop = l.H - H.GetHeight(edge[1] + ox * 6, edge[2] + oz * 6)
+				local h = H.GetHeight(ex, ez)
+				if drop > 3.5 and math.abs(h - l.H) < 0.7 and not nearPath(ex, ez) and not nearBuilding(ex, ez) then
+					posts[k] = V(ex, h, ez)
+				end
+			end
+		end
+		for k = 0, n - 1 do
+			local p = posts[k]
+			if p then
+				P.pillar(folder, p.X, p.Z, p.Y - 0.6, p.Y + 3.3, 0.65, { Name = "RailPost", Mat = "Wood", Color = Nature.Shade(DARK_WOOD, rng:Range(0.9, 1.1)) })
+				count += 1
+				local q = posts[(k + 1) % n]
+				if q and (q - p).Magnitude < 6.5 then
+					P.plank(folder, p + V(0, 3.0, 0), q + V(0, 3.0, 0), 0.4, 0.35, { Name = "Rail", Mat = "Wood", Color = Nature.Shade(WOOD, rng:Range(0.92, 1.06)) })
+					P.beam(folder, p + V(0, 1.6, 0), q + V(0, 1.6, 0), 0.18, { Name = "Rope", Mat = "Fabric", Color = ROPE, CanCollide = false })
+					count += 2
+				end
+			end
+		end
+	end
+	return count
 end
 
 -- Raised plank walkways (path.Planks segments): boards across two stringers on short
@@ -1230,6 +1403,7 @@ function MainIsland.Build(parent: any, H: any, World: any, Noise: any, clear: { 
 	buildWalkways(model, H, World, rng)
 	buildBridges(model, H, World, rng, clear)
 	buildTrails(model, H, World, rng, clear)
+	ledgeRailings(model, H, World, rng, clear)
 	buildStreams(model, H, World, rng, clear)
 	buildTownRocks(model, H, World, rng, clear)
 	buildSummitRocks(model, island, H, World, rng, clear)
