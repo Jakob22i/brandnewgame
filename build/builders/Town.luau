@@ -984,6 +984,82 @@ local function watchtower(parent: any, x: number, z: number, yaw: number, H: any
 	return m
 end
 
+-- A campfire with log benches and a cooking pot on a spit ---------------------------------------
+local function campfire(parent: any, x: number, z: number, H: any)
+	O.Seed(9090)
+	local m = P.model(parent, "Campfire")
+	local function gy(px: number, pz: number): number
+		return (H.GetHeight(px, pz))
+	end
+	local y = gy(x, z)
+	local base = CF(x, y, z)
+	for i = 0, 6 do
+		local a = i * 2 * PI / 7
+		O.Ball(m, "FireStone", (base * CF(math.cos(a) * 1.9, 0.2, math.sin(a) * 1.9)).Position, O.Range(0.8, 1.1), O.Jitter(rgb(128, 122, 114), 0.08), "Slate")
+	end
+	for k = 0, 1 do
+		O.Part(m, "FireLog", V(2.6, 0.5, 0.5), base * CF(0, 0.35, 0) * Angles(0, k * PI / 2 + 0.4, 0) * Angles(0, 0, 0.12), rgb(90, 60, 40), "Wood", { Shape = "Cylinder" })
+	end
+	local core = O.Ball(m, "Embers", (base * CF(0, 0.55, 0)).Position, 0.9, rgb(255, 130, 40), "Neon", { CanCollide = false, CanQuery = false })
+	local fire = P.Instance.new("Fire")
+	fire.Size = 4
+	fire.Heat = 8
+	fire.Parent = core
+	P.pointLight(core, rgb(255, 150, 70), 22, 1.6, false)
+	-- spit and pot
+	for _, sx in { -1.7, 1.7 } do
+		O.Stick(m, "SpitPost", (base * CF(sx, 0, 0)).Position, (base * CF(sx * 0.95, 3.0, 0)).Position, 0.22, 0.22, O.DARK, "Wood", { CanCollide = false })
+	end
+	O.Part(m, "Spit", V(3.8, 0.16, 0.16), base * CF(0, 2.95, 0), O.IRON, "Metal", { CanCollide = false })
+	O.Cyl(m, "Pot", base * CF(0, 1.95, 0), 1.0, 1.2, rgb(46, 44, 46), "Metal", { CanCollide = false })
+	-- log benches around it
+	for i = 0, 2 do
+		local a = i * 2 * PI / 3 + 0.5
+		local p = (base * CF(math.cos(a) * 5, 0, math.sin(a) * 5)).Position
+		O.Part(m, "LogBench", V(3.8, 1.1, 1.1), CF(p.X, gy(p.X, p.Z) + 0.45, p.Z) * Angles(0, -a + PI / 2, 0), O.Jitter(rgb(112, 80, 52), 0.08), "Wood", { Shape = "Cylinder" })
+	end
+	return m
+end
+
+-- A fenced vegetable garden with a scarecrow --------------------------------------------------------
+local function garden(parent: any, x: number, z: number, yaw: number, H: any)
+	O.Seed(4711)
+	local m = P.model(parent, "Garden")
+	local base = (H.GetHeight(x, z))
+	local origin = CF(x, base, z) * Angles(0, yaw, 0)
+	local function g(lx: number, lz: number): number
+		local p = origin * V(lx, 0, lz)
+		return (H.GetHeight(p.X, p.Z)) - base
+	end
+	local hw, hd = 7.5, 5.5
+	for _, px in { -hw, 0, hw } do
+		for _, pz in { -hd, hd } do
+			O.Part(m, "FencePost", V(0.5, 3.4, 0.5), CF(px, g(px, pz) + 1.2, pz) * Angles(0, 0, math.rad(O.Range(-3, 3))), O.Jitter(O.DARK, 0.08), "Wood")
+		end
+	end
+	for _, pz in { -hd, hd } do
+		O.Stick(m, "FenceRail", V(-hw, g(-hw, pz) + 2.3, pz), V(hw, g(hw, pz) + 2.3, pz), 0.25, 0.4, O.Jitter(rgb(120, 88, 58), 0.06), "Wood")
+	end
+	for _, px in { -hw, hw } do
+		O.Stick(m, "FenceRail", V(px, g(px, -hd) + 2.3, -hd), V(px, g(px, hd) + 2.3, hd), 0.25, 0.4, O.Jitter(rgb(120, 88, 58), 0.06), "Wood")
+	end
+	local crops = { rgb(96, 168, 64), rgb(232, 132, 40), rgb(124, 186, 74) }
+	for i, rz in { -3, 0, 3 } do
+		O.Part(m, "Bed", V(12, 0.5, 1.9), CF(0, g(0, rz) + 0.1, rz), rgb(104, 76, 52), "Ground", { CanCollide = false })
+		for k = -1, 1 do
+			local px = k * 3.6 + O.Range(-0.4, 0.4)
+			local size = if i == 2 then V(1.1, 0.9, 1.1) else V(1.4, 0.8, 1.4)
+			local plant = O.Part(m, "Crop", size, CF(px, g(px, rz) + 0.65, rz), O.Jitter(crops[i], 0.08), "SmoothPlastic", { CanCollide = false })
+			local mesh = P.Instance.new("SpecialMesh")
+			mesh.MeshType = P.Enum.MeshType.Sphere
+			mesh.Parent = plant
+		end
+	end
+	O.Dummy(m, CF(5.2, g(5.2, 1.5), 1.5) * Angles(0, 0.4, 0))
+	P.transform(m, origin)
+	return m
+end
+
 -- Market stalls ------------------------------------------------------------------------------------------
 
 local function stall(parent: any, cf: any, colorA: any, colorB: any, kind: string)
@@ -1576,6 +1652,12 @@ function Town.Build(parent: any, H: any, World: any)
 		keep(pd.X, 312, 11)
 		keep(pd.X, 326, 11)
 	end
+
+	-- A campfire west of the main street, a vegetable garden to the east
+	campfire(town, -98, 186, H)
+	keep(-98, 186, 10)
+	garden(town, 100, 192, 0.3, H)
+	keep(100, 192, 12)
 
 	-- A lookout tower over the harbour, east of the piers
 	watchtower(town, 112, 280, 0.2, H)
